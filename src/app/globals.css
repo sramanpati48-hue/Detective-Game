@@ -1,26 +1,86 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #101720;
+  --foreground: #F8F2E7;
+  
+  --color-ink: #101720;
+  --color-navy: #172233;
+  --color-panel-wood: #2C211B;
+  --color-charcoal: #202A36;
+  --color-paper-kulfi: #F2E3C6;
+  --color-paper-muted: #D9C7A6;
+  --color-brass: #C99A3C;
+  --color-brass-light: #E8C66A;
+  --color-amber: #E6A23C;
+  --color-burgundy: #6B2E35;
+  --color-red-thread: #A84743;
+  --color-teal-fog: #557B7C;
+  --color-text-main: #F8F2E7;
+  --color-text-muted: #BAC1C8;
+  --color-success: #719C70;
+  --color-warning: #D39E42;
+  --color-danger: #B34A4A;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-ink: var(--color-ink);
+  --color-navy: var(--color-navy);
+  --color-panel-wood: var(--color-panel-wood);
+  --color-charcoal: var(--color-charcoal);
+  --color-paper-kulfi: var(--color-paper-kulfi);
+  --color-paper-muted: var(--color-paper-muted);
+  --color-brass: var(--color-brass);
+  --color-brass-light: var(--color-brass-light);
+  --color-amber: var(--color-amber);
+  --color-burgundy: var(--color-burgundy);
+  --color-red-thread: var(--color-red-thread);
+  --color-teal-fog: var(--color-teal-fog);
+  --color-text-main: var(--color-text-main);
+  --color-text-muted: var(--color-text-muted);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-danger: var(--color-danger);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-playfair);
+  --font-mono: var(--font-ibm-plex-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-ink);
+  color: var(--color-text-main);
+  font-family: var(--font-sans), sans-serif;
+  overflow-x: hidden;
 }
+
+.atmosphere-rain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='noiseFilter'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23noiseFilter)' opacity='0.06'/></svg>");
+  z-index: 10;
+  mix-blend-mode: overlay;
+}
+
+.atmosphere-lamp {
+  position: fixed;
+  top: -20%;
+  right: -10%;
+  width: 80vw;
+  height: 80vw;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(230,162,60,0.12) 0%, rgba(230,162,60,0) 70%);
+  z-index: 5;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

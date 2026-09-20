@@ -1,103 +1,168 @@
-import Image from "next/image";
+"use client";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Play, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import TotalLiveBackground from "@/components/effects/TotalLiveBackground";
+
+const TRANSLATIONS = [
+  {
+    lang: "Bengali",
+    code: "বাংলা",
+    script: "সত্য এখনও অপেক্ষায়",
+    sub: "Satya ekhono opekkhay • Truth still waits",
+  },
+  {
+    lang: "Hindi",
+    code: "हिन्दी",
+    script: "सच अभी भी प्रतीक्षारत है",
+    sub: "Sach abhi bhi prateeksharat hai • Truth still waits",
+  },
+  {
+    lang: "Tamil",
+    code: "தமிழ்",
+    script: "உண்மை இன்னும் காத்திருக்கிறது",
+    sub: "Unmai innum kaathirukkiradhu • Truth still waits",
+  },
+  {
+    lang: "Telugu",
+    code: "తెలుగు",
+    script: "నిజం ఇంకా వేచి ఉంది",
+    sub: "Nijam inka vechi undi • Truth still waits",
+  },
+  {
+    lang: "Marathi",
+    code: "मराठी",
+    script: "सत्य अजूनही वाट पाहत आहे",
+    sub: "Satya ajunhi vaat pahat aahe • Truth still waits",
+  },
+  {
+    lang: "English",
+    code: "ENG",
+    script: "TRUTH STILL WAITS",
+    sub: "Every clue leaves a trace in the city of dawn",
+  },
+];
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [activeIdx, setActiveIdx] = useState(0);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveIdx((prev) => (prev + 1) % TRANSLATIONS.length);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, []);
+
+  const current = TRANSLATIONS[activeIdx];
+
+  return (
+    <div className="fixed inset-0 z-50 bg-[#0f1115] text-[#F8F2E7] font-sans overflow-hidden select-none">
+      
+      {/* TOTAL LIVE CINEMATIC BACKGROUND */}
+      <TotalLiveBackground />
+
+
+
+      {/* MAIN CONTENT (Left Aligned as in Image 1) */}
+      <main className="absolute inset-y-0 left-0 z-30 flex flex-col justify-center px-16 md:px-24 max-w-4xl">
+        
+        <div className="pl-16 md:pl-20">
+          <h1 className="font-serif text-6xl md:text-[6rem] leading-[0.85] text-[#EAE1D1] drop-shadow-[0_5px_15px_rgba(0,0,0,0.9)]">
+            BHORER<br/>SHAHAR
+          </h1>
+          
+          <div className="flex items-center gap-4 mt-8 mb-10 w-72 drop-shadow-md">
+            <div className="h-px bg-[#E8C66A]/70 flex-1"></div>
+            <span className="font-mono text-[#E8C66A] text-sm tracking-[0.4em] uppercase font-bold">Case Files</span>
+            <div className="h-px bg-[#E8C66A]/70 flex-1"></div>
+          </div>
+
+          {/* QUOTE + ANIMATED TRANSLATIONS BOX */}
+          <div className="border-l-2 border-[#A84743] pl-5 mb-10 max-w-lg">
+            <p className="font-mono text-[#EAE1D1] text-sm md:text-base leading-relaxed tracking-widest uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-medium">
+              Some cities never sleep.<br/>
+              They just hide their secrets<br/>
+              better.
+            </p>
+            
+            {/* Animated translation cycler */}
+            <div className="mt-5 pt-4 border-t border-[#A84743]/30 min-h-[64px] relative">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeIdx}
+                  initial={{ opacity: 0, y: 8, filter: "blur(6px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: -8, filter: "blur(6px)" }}
+                  transition={{ duration: 0.55, ease: "easeInOut" }}
+                  className="flex flex-col gap-1"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="font-serif text-[#E8C66A] text-xl md:text-2xl tracking-widest drop-shadow-[0_2px_10px_rgba(232,198,106,0.35)]">
+                      {current.script}
+                    </span>
+                    <span className="text-[9px] font-mono tracking-widest px-2 py-0.5 rounded-sm border border-[#C99A3C]/40 text-[#E8C66A]/90 bg-black/50 backdrop-blur-xs">
+                      {current.lang}
+                    </span>
+                  </div>
+                  <p className="font-sans text-[#D9C7A6]/75 text-[11px] tracking-[0.18em] uppercase">
+                    {current.sub}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Language Navigation / Progress Dots */}
+              <div className="flex items-center gap-2 mt-3.5">
+                {TRANSLATIONS.map((t, idx) => (
+                  <button
+                    key={t.code}
+                    onClick={() => setActiveIdx(idx)}
+                    className={cn(
+                      "h-1 rounded-full transition-all duration-500 cursor-pointer",
+                      idx === activeIdx 
+                        ? "w-8 bg-[#E8C66A] shadow-[0_0_10px_rgba(232,198,106,0.8)]" 
+                        : "w-2 bg-[#D9C7A6]/30 hover:bg-[#D9C7A6]/60"
+                    )}
+                    aria-label={`Switch to ${t.lang}`}
+                    title={t.lang}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-8">
+            <Link href="/cases">
+              <button className="group flex items-center gap-3 bg-[#752a32]/90 hover:bg-[#8e292b] text-[#EAE1D1] font-serif text-sm tracking-[0.2em] uppercase px-8 py-4 border border-[#A84743] shadow-[0_0_20px_rgba(168,71,67,0.6)] backdrop-blur-sm transition-all cursor-pointer">
+                Enter The Archive
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </Link>
+            
+            <button className="group flex items-center gap-3 text-[#EAE1D1] hover:text-[#E8C66A] font-serif text-sm tracking-[0.2em] uppercase transition-colors drop-shadow-md cursor-pointer">
+              <div className="w-12 h-12 rounded-full border-2 border-[#D9C7A6]/50 group-hover:border-[#E8C66A] flex items-center justify-center bg-black/40 backdrop-blur-md transition-colors">
+                <Play className="w-4 h-4 ml-1 fill-current" />
+              </div>
+              Watch Trailer
+            </button>
+          </div>
         </div>
+
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+      {/* Embedded CSS for Live Animations */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes subtle-drift {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.015) translate(-0.3%, -0.3%); }
+          100% { transform: scale(1); }
+        }
+        .animate-subtle-drift {
+          animation: subtle-drift 24s ease-in-out infinite;
+          will-change: transform;
+        }
+      `}} />
     </div>
   );
 }
