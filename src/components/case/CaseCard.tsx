@@ -1,8 +1,11 @@
-import React from "react";
+import React, { memo } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Clock, Users, Lock, ChevronRight } from "lucide-react";
-import { BrassButton } from "@/components/ui/BrassButton";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 
 interface CaseCardProps {
   id: string;
@@ -17,7 +20,7 @@ interface CaseCardProps {
   href?: string;
 }
 
-export function CaseCard({
+export const CaseCard = memo(function CaseCard({
   code,
   title,
   status,
@@ -30,41 +33,49 @@ export function CaseCard({
 }: CaseCardProps) {
   const isLocked = status === "Locked";
 
+  const badgeVariant =
+    status === "Available" ? "available" :
+    status === "Solved" ? "solved" :
+    status === "In Progress" ? "inProgress" :
+    "locked";
+
   return (
-    <div className={cn(
-      "relative bg-charcoal border border-brass/20 rounded shadow-lg overflow-hidden group flex flex-col h-full",
-      isLocked ? "opacity-75 grayscale-[0.8]" : "hover:border-brass/50 transition-all duration-300"
-    )}>
-      <div className="h-40 bg-navy relative flex items-center justify-center overflow-hidden">
+    <Card
+      className={cn(
+        "relative gap-0 p-0 bg-charcoal border-brass/20 rounded shadow-lg overflow-hidden group flex flex-col h-full",
+        isLocked ? "opacity-75 grayscale-[0.8]" : "hover:border-brass/50 transition-all duration-300"
+      )}
+    >
+      <div className="h-40 bg-navy relative flex items-center justify-center overflow-hidden shrink-0">
         {/* Placeholder for Image */}
-        <div className="absolute inset-0 bg-panel-wood opacity-50"></div>
-        <span className="relative z-10 text-paper-muted/30 font-serif text-2xl tracking-widest uppercase">{imageFallback}</span>
+        <div className="absolute inset-0 bg-panel-wood opacity-50" />
+        <span className="relative z-10 text-paper-muted/30 font-serif text-2xl tracking-widest uppercase select-none">
+          {imageFallback}
+        </span>
         
         {/* Status Badge */}
         <div className="absolute top-3 left-3 z-20">
-          <span className={cn(
-            "text-[10px] font-mono tracking-widest uppercase px-2 py-1 bg-ink/80 border backdrop-blur-sm rounded-sm",
-            status === "Available" ? "text-brass border-brass/50" :
-            status === "Solved" ? "text-success border-success/50" :
-            status === "In Progress" ? "text-amber border-amber/50" :
-            "text-text-muted border-text-muted/50"
-          )}>
+          <Badge variant={badgeVariant}>
             {status}
-          </span>
+          </Badge>
         </div>
       </div>
 
-      <div className="p-5 flex flex-col flex-1 relative">
+      <CardContent className="p-5 flex flex-col flex-1 relative gap-0">
         <div className="text-[10px] font-mono text-brass-light mb-1">{code}</div>
-        <h3 className="font-serif text-xl text-paper-kulfi mb-2">{title}</h3>
+        <h3 className="font-serif text-xl text-paper-kulfi mb-2 leading-snug">{title}</h3>
         
         {!isLocked && (
           <div className="flex items-center gap-3 text-xs text-paper-muted mb-4 font-sans">
             {minutes && (
-              <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-brass/70"/> {minutes}</span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3 text-brass/70 shrink-0" /> {minutes}
+              </span>
             )}
             {players && (
-              <span className="flex items-center gap-1"><Users className="w-3 h-3 text-brass/70"/> {players}</span>
+              <span className="flex items-center gap-1">
+                <Users className="w-3 h-3 text-brass/70 shrink-0" /> {players}
+              </span>
             )}
             {difficulty && (
               <span className="text-brass/70">• {difficulty}</span>
@@ -73,7 +84,7 @@ export function CaseCard({
         )}
 
         {description && !isLocked && (
-          <p className="text-sm text-text-muted line-clamp-2 mb-6 flex-1">
+          <p className="text-sm text-text-muted line-clamp-2 mb-6 flex-1 leading-relaxed">
             {description}
           </p>
         )}
@@ -86,19 +97,23 @@ export function CaseCard({
             </div>
           </div>
         )}
+      </CardContent>
 
-        <div className="mt-auto pt-4 border-t border-brass/10">
-          {isLocked ? (
-            <div className="text-xs text-center text-text-muted tracking-widest uppercase font-mono">Coming Soon</div>
-          ) : (
-            <Link href={href} className="block">
-              <BrassButton className="w-full" variant="secondary">
-                Open Case File <ChevronRight className="w-4 h-4 ml-2" />
-              </BrassButton>
+      <Separator className="bg-brass/10" />
+
+      <CardFooter className="p-4 pt-3 mt-auto">
+        {isLocked ? (
+          <div className="w-full text-xs text-center text-text-muted tracking-widest uppercase font-mono py-2">
+            Coming Soon
+          </div>
+        ) : (
+          <Button asChild variant="brassOutline" className="w-full">
+            <Link href={href}>
+              Open Case File <ChevronRight className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
-          )}
-        </div>
-      </div>
-    </div>
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
   );
-}
+});

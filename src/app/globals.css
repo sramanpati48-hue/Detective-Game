@@ -4,6 +4,32 @@
   --background: #101720;
   --foreground: #F8F2E7;
   
+  --card: #18110B;
+  --card-foreground: #F8F2E7;
+
+  --popover: #18110B;
+  --popover-foreground: #F8F2E7;
+
+  --primary: #C99A3C;
+  --primary-foreground: #101720;
+
+  --secondary: #241A13;
+  --secondary-foreground: #E8C66A;
+
+  --muted: #221810;
+  --muted-foreground: #BFA885;
+
+  --accent: #2E2015;
+  --accent-foreground: #FAF4E8;
+
+  --destructive: #8C282C;
+  --destructive-foreground: #FAF4E8;
+
+  --border: #8C6D37;
+  --input: #3A2A1C;
+  --ring: #E8C66A;
+  --radius: 0.5rem;
+
   --color-ink: #101720;
   --color-navy: #172233;
   --color-panel-wood: #2C211B;
@@ -26,6 +52,29 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
   --color-ink: var(--color-ink);
   --color-navy: var(--color-navy);
   --color-panel-wood: var(--color-panel-wood);
@@ -82,5 +131,43 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+@keyframes steamRise {
+  0% {
+    transform: translateY(0) scaleX(1);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.55;
+  }
+  60% {
+    transform: translateY(-22px) scaleX(1.5) translateX(4px);
+    opacity: 0.35;
+  }
+  100% {
+    transform: translateY(-48px) scaleX(2.2) translateX(-5px);
+    opacity: 0;
+  }
+}
+
+.animate-steam-1 {
+  animation: steamRise 4.2s ease-out infinite;
+}
+.animate-steam-2 {
+  animation: steamRise 3.6s ease-out infinite 1.4s;
+}
+.animate-steam-3 {
+  animation: steamRise 4.8s ease-out infinite 0.7s;
+}
+
+@keyframes lampGlow {
+  0%, 100% { opacity: 0.16; transform: scale(1); }
+  50% { opacity: 0.12; transform: scale(0.98); }
+  75% { opacity: 0.19; transform: scale(1.02); }
+}
+
+.animate-lamp-glow {
+  animation: lampGlow 9s ease-in-out infinite;
 }
 
