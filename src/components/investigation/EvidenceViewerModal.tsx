@@ -153,7 +153,7 @@ export default function EvidenceViewerModal({
           </button>
 
           <div className="flex items-center gap-3">
-            {!isShared ? (
+            {!isShared && (
               <button
                 onClick={handleShare}
                 className="px-4 py-2 bg-[#702428] hover:bg-[#852C32] text-[#FAF4E8] rounded-xs font-serif text-xs uppercase tracking-wider font-bold flex items-center gap-2 shadow-md cursor-pointer transition-colors border border-[#C99A3C]"
@@ -161,15 +161,15 @@ export default function EvidenceViewerModal({
                 <Share2 className="w-3.5 h-3.5" />
                 <span>Share with Room</span>
               </button>
-            ) : (
-              <button
-                onClick={handlePin}
-                className="px-4 py-2 bg-[#C99A3C] hover:bg-[#D4A94B] text-[#1F1710] rounded-xs font-serif text-xs uppercase tracking-wider font-bold flex items-center gap-2 shadow-md cursor-pointer transition-colors"
-              >
-                <Pin className="w-3.5 h-3.5" />
-                <span>{isPinned ? "Move Pin on Board" : "Pin to Caseboard"}</span>
-              </button>
             )}
+            <button
+              data-tutorial-id="tutorial-add-to-journal"
+              onClick={handlePin}
+              className="px-4 py-2 bg-[#C99A3C] hover:bg-[#D4A94B] text-[#1F1710] rounded-xs font-serif text-xs uppercase tracking-wider font-bold flex items-center gap-2 shadow-md cursor-pointer transition-colors"
+            >
+              <Pin className="w-3.5 h-3.5" />
+              <span>{isPinned ? "Move Pin on Board" : "Pin to Journal / Board"}</span>
+            </button>
           </div>
         </div>
       </div>

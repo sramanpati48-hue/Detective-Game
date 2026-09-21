@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Filter, Trophy, User, Archive, Shield } from "lucide-react";
+import { ArrowLeft, Filter, Trophy, User, Archive, Shield, HelpCircle } from "lucide-react";
 import { DETECTIVES, DetectiveRole } from "@/lib/data/detectives";
 import DetectiveRosterCard from "@/components/detectives/DetectiveRosterCard";
 import { cn } from "@/lib/utils";
@@ -78,11 +78,19 @@ export default function DetectivesPage() {
           </Link>
         </nav>
 
-        {/* Right: Department Bureau Identifier */}
+        {/* Right: Department Bureau Identifier & Help Link */}
         <div className="flex items-center gap-3">
           <span className="font-serif italic text-xs text-[#C99A3C]/90 tracking-wider hidden md:inline">
             Lalbazar Criminal Investigation Bureau
           </span>
+          <Link
+            href="/how-to-play"
+            className="p-1.5 text-[#D9C7A6] hover:text-[#E8C66A] transition-colors bg-[#180E07] border border-[#C99A3C]/60 rounded-xs shadow-xs flex items-center justify-center cursor-pointer"
+            aria-label="Field Manual (How to Play)"
+            title="Field Manual & Investigator Guide"
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-[#E8C66A]" />
+          </Link>
           <div className="px-2.5 py-1 rounded-xs bg-[#180E07] border border-[#C99A3C]/60 text-[9.5px] font-mono font-bold text-[#E8C66A] uppercase tracking-widest shadow-xs">
             PERSONNEL ARCHIVE
           </div>

@@ -22,7 +22,8 @@ import {
   Upload,
   RefreshCw,
   Gauge,
-  Coffee
+  Coffee,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -493,6 +494,14 @@ export default function CasesHub() {
             <button className="p-2 text-[#D9C7A6] hover:text-[#E8C66A] transition-colors bg-[#1c140e]/95 border border-[#C99A3C]/40 rounded-md shadow-xs cursor-pointer" aria-label="Settings">
               <Settings className="w-4 h-4" />
             </button>
+            <Link
+              href="/how-to-play"
+              className="p-2 text-[#D9C7A6] hover:text-[#E8C66A] transition-colors bg-[#1c140e]/95 border border-[#C99A3C]/40 rounded-md shadow-xs cursor-pointer flex items-center justify-center"
+              aria-label="Field Manual (How to Play)"
+              title="Field Manual & Detective Instructions"
+            >
+              <HelpCircle className="w-4 h-4 text-[#E8C66A]" />
+            </Link>
           </div>
           <p className="font-serif italic text-[10px] text-[#E8C66A]/75 tracking-wider pr-1">
             Same Streets. New Secrets.

@@ -29,6 +29,7 @@ import FinalAccusationScreen from "@/components/investigation/FinalAccusationScr
 import RevealCinematic from "@/components/investigation/RevealCinematic";
 import ResultsScreen from "@/components/investigation/ResultsScreen";
 import EpisodeUnlockTransition from "@/components/investigation/EpisodeUnlockTransition";
+import TutorialOverlay from "@/components/tutorial/TutorialOverlay";
 
 import {
   Folder,
@@ -44,6 +45,7 @@ import {
   Gavel,
   Wifi,
   WifiOff,
+  BookOpen,
 } from "lucide-react";
 
 export default function InvestigationPage({
@@ -55,8 +57,22 @@ export default function InvestigationPage({
   const router = useRouter();
 
   const store = useInvestigationStore();
+  const currentEp = store.getCurrentEpisode() || THE_LAST_FERRY_CASE.episodes[0];
+  const accessibleClues = store.getAllAccessibleClues();
+  const myClues = store.getMyClues();
+  const currentCheckpointStatus = store.checkpointStatus[currentEp.id] || {
+    passed: false,
+    attempts: 0,
+    hintsUsed: [],
+  };
+  const selectedClue = accessibleClues.find((c) => c.id === store.selectedClueId) || null;
+  const currentIQS = store.calculateCurrentIQS();
 
   const [transitionNextTitle, setTransitionNextTitle] = useState<string | null>(null);
+  
+  // Tutorial State: Always trigger each time user starts an investigation
+  const [isTutorialActive, setIsTutorialActive] = useState(false);
+  const [hasStartedInvestigationSession, setHasStartedInvestigationSession] = useState(false);
 
   // Initialize Store with roomCode
   useEffect(() => {
@@ -80,18 +96,13 @@ export default function InvestigationPage({
     }
   }, [episodeId]);
 
-  const currentEp = store.getCurrentEpisode() || THE_LAST_FERRY_CASE.episodes[0];
-  const accessibleClues = store.getAllAccessibleClues();
-  const myClues = store.getMyClues();
-  const currentCheckpointStatus = store.checkpointStatus[currentEp.id] || {
-    passed: false,
-    attempts: 0,
-    hintsUsed: [],
-  };
-
-  const selectedClue = accessibleClues.find((c) => c.id === store.selectedClueId) || null;
-
-  const currentIQS = store.calculateCurrentIQS();
+  // Launch tutorial sequence automatically whenever the user starts investigation (when briefing closes or if starting in investigation)
+  useEffect(() => {
+    if (!hasStartedInvestigationSession && store.activeTab !== "briefing") {
+      setIsTutorialActive(true);
+      setHasStartedInvestigationSession(true);
+    }
+  }, [hasStartedInvestigationSession, store.activeTab]);
 
   const handleCheckpointSubmit = async (selectedClueIds: string[], notes: string) => {
     const res = await store.submitCheckpoint(currentEp.episodeNumber, selectedClueIds, notes);
@@ -151,7 +162,10 @@ export default function InvestigationPage({
             <span className="text-[#665040] hidden sm:inline">&bull;</span>
 
             {/* Episode Selector Pill */}
-            <div className="flex items-center gap-1 bg-[#1F1710] px-3 py-1 rounded-xs border border-[#C99A3C]/30 text-xs font-mono">
+            <div
+              data-tutorial-id="tutorial-episode-selector"
+              className="flex items-center gap-1 bg-[#1F1710] px-3 py-1 rounded-xs border border-[#C99A3C]/30 text-xs font-mono"
+            >
               <span className="text-[#D9C7A6]/70">EPISODE:</span>
               <select
                 value={currentEp.id}
@@ -193,8 +207,8 @@ export default function InvestigationPage({
             </div>
           </div>
 
-          {/* Center-Right: Action Modals & Audio Controls */}
-          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+          {/* Center-Right: Action Modals, Tutorial Replay, Field Manual & Audio */}
+          <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
             {/* Live IQS Indicator */}
             <div className="flex items-center gap-2 px-3 py-1 bg-[#241A13] border border-[#C99A3C]/40 rounded-xs font-mono text-xs">
               <span className="text-[#D9C7A6]/70">IQS:</span>
@@ -213,8 +227,33 @@ export default function InvestigationPage({
               {store.isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </button>
 
+            {/* Permanent 'How to Play' Field Manual Link */}
+            <Link
+              href="/how-to-play"
+              target="_blank"
+              className="p-1.5 rounded-xs bg-[#1F1710] text-[#E8C66A] hover:bg-[#2D1F17] hover:text-[#FFF] transition-colors border border-[#C99A3C]/30 text-xs font-mono cursor-pointer flex items-center gap-1"
+              title="The Field Manual (How to Play)"
+            >
+              <HelpCircle className="w-4 h-4" />
+              <span className="hidden xl:inline text-[10px] uppercase tracking-wider font-bold">Manual</span>
+            </Link>
+
+            {/* Replay Tutorial Button */}
+            <button
+              onClick={() => {
+                setIsTutorialActive(true);
+                store.setActiveTab("evidence");
+              }}
+              className="p-1.5 rounded-xs bg-[#1F1710] text-[#D9C7A6] hover:text-[#E8C66A] hover:bg-[#2D1F17] transition-colors border border-[#C99A3C]/30 text-xs font-mono cursor-pointer flex items-center gap-1"
+              title="Replay Field Tutorial"
+            >
+              <BookOpen className="w-4 h-4 text-[#C99A3C]" />
+              <span className="hidden xl:inline text-[10px] uppercase tracking-wider font-bold">Tutorial</span>
+            </button>
+
             {/* Hint Button */}
             <button
+              data-tutorial-id="tutorial-hint-btn"
               onClick={() => store.setHintModalOpen(true)}
               className="px-3 py-1.5 bg-[#241A13] hover:bg-[#332216] text-[#E8C66A] rounded-xs font-serif text-xs uppercase tracking-wider flex items-center gap-1.5 border border-[#C99A3C]/40 cursor-pointer"
             >
@@ -224,6 +263,7 @@ export default function InvestigationPage({
 
             {/* Episode Checkpoint Button */}
             <button
+              data-tutorial-id="tutorial-checkpoint-btn"
               onClick={() => store.setCheckpointModalOpen(true)}
               className={`px-4 py-1.5 rounded-xs font-serif text-xs uppercase tracking-wider font-bold flex items-center gap-1.5 border shadow-md cursor-pointer transition-all ${
                 currentCheckpointStatus.passed
@@ -263,6 +303,13 @@ export default function InvestigationPage({
             return (
               <button
                 key={tab.id}
+                data-tutorial-id={
+                  tab.id === "caseboard"
+                    ? "tutorial-caseboard-tab"
+                    : tab.id === "chat"
+                    ? "tutorial-chat-tab"
+                    : undefined
+                }
                 onClick={() => store.setActiveTab(tab.id as InvestigationTab)}
                 className={`px-3.5 py-1.5 rounded-xs font-serif text-xs uppercase tracking-wider flex items-center gap-2 shrink-0 transition-all cursor-pointer ${
                   isActive
@@ -284,7 +331,11 @@ export default function InvestigationPage({
         {store.activeTab === "briefing" && (
           <EpisodeBriefingScreen
             episode={currentEp}
-            onProceed={() => store.setActiveTab("evidence")}
+            onProceed={() => {
+              store.setActiveTab("evidence");
+              setIsTutorialActive(true);
+              setHasStartedInvestigationSession(true);
+            }}
             isMuted={store.isMuted}
             onToggleMute={store.toggleMute}
           />
@@ -310,13 +361,14 @@ export default function InvestigationPage({
 
             {/* Clue Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {accessibleClues.map((clue) => {
+              {accessibleClues.map((clue, idx) => {
                 const isShared = store.sharedEvidenceIds.includes(clue.id);
                 const isPinned = store.caseboardPins.some((p) => p.evidenceId === clue.id);
 
                 return (
                   <div
                     key={clue.id}
+                    data-tutorial-id={idx === 0 ? "tutorial-first-clue" : undefined}
                     onClick={() => store.setSelectedClueId(clue.id)}
                     className="bg-[#FAF4E8] text-[#1F1710] rounded-sm p-5 border-2 border-[#D4B26F]/60 shadow-lg flex flex-col justify-between cursor-pointer transition-all hover:border-[#8C2D32] hover:scale-[1.01] relative bg-[radial-gradient(#E8DAC2_1px,transparent_1px)] [background-size:14px_14px]"
                   >
@@ -530,6 +582,25 @@ export default function InvestigationPage({
           onContinue={handleContinueAfterTransition}
         />
       )}
+
+      {/* Interactive First-Time Tutorial Overlay */}
+      <TutorialOverlay
+        isOpen={isTutorialActive}
+        isSoloMode={false}
+        onClose={() => setIsTutorialActive(false)}
+        onComplete={() => {
+          setIsTutorialActive(false);
+        }}
+        isEvidenceModalOpen={Boolean(store.selectedClueId)}
+        hasPinnedEvidence={store.caseboardPins.length > 0}
+        currentActiveTab={store.activeTab}
+        onNavigateTab={(tab) => store.setActiveTab(tab as InvestigationTab)}
+        onOpenFirstClue={() => {
+          if (accessibleClues.length > 0) {
+            store.setSelectedClueId(accessibleClues[0].id);
+          }
+        }}
+      />
 
       {/* Noir Footer */}
       <footer className="relative z-10 py-3 px-8 text-center text-[11px] font-serif italic text-[#D9C7A6]/50 border-t border-[#3D2C20] bg-[#120D09]/80">
