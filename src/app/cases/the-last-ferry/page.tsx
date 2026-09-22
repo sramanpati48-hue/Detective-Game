@@ -97,6 +97,8 @@ export default function TheLastFerryCasePage() {
                   src="/cases/the-last-ferry/scene_deck_night.jpg"
                   alt="MV Sonartori Ferry at Night"
                   fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 500px"
                   className="object-cover contrast-[1.1] sepia-[0.2]"
                 />
                 <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/70 text-[#E8C66A] font-mono text-[10px] tracking-wider uppercase">
@@ -127,6 +129,7 @@ export default function TheLastFerryCasePage() {
                     src={caseData.victim.avatar}
                     alt={caseData.victim.name}
                     fill
+                    sizes="64px"
                     className="object-cover"
                   />
                 </div>

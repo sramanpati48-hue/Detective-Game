@@ -62,6 +62,7 @@ export default function SuspectMatrix({ onInterviewSuspect }: SuspectMatrixProps
                       src={person.avatar}
                       alt={person.name}
                       fill
+                      sizes="80px"
                       className="object-cover"
                     />
                   </div>

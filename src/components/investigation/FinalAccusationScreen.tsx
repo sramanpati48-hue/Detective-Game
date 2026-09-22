@@ -115,10 +115,11 @@ export default function FinalAccusationScreen({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Mastermind */}
               <div className="p-4 bg-[#FAF4E8] border border-[#C99A3C] rounded-xs shadow-xs">
-                <label className="block font-mono text-xs uppercase font-bold text-[#8C2D32] mb-2">
+                <label htmlFor="accusation-planner-select" className="block font-mono text-xs uppercase font-bold text-[#8C2D32] mb-2">
                   1. Identify the Mastermind / Planner:
                 </label>
                 <select
+                  id="accusation-planner-select"
                   value={plannerId}
                   onChange={(e) => setPlannerId(e.target.value)}
                   className="w-full p-2.5 bg-[#F2E5D0] border border-[#C99A3C] text-xs font-serif text-[#1F1710] rounded-xs"
@@ -137,10 +138,11 @@ export default function FinalAccusationScreen({
 
               {/* Accomplice */}
               <div className="p-4 bg-[#FAF4E8] border border-[#C99A3C] rounded-xs shadow-xs">
-                <label className="block font-mono text-xs uppercase font-bold text-[#8C2D32] mb-2">
+                <label htmlFor="accusation-accomplice-select" className="block font-mono text-xs uppercase font-bold text-[#8C2D32] mb-2">
                   2. Identify the Inside Accomplice:
                 </label>
                 <select
+                  id="accusation-accomplice-select"
                   value={accompliceId}
                   onChange={(e) => setAccompliceId(e.target.value)}
                   className="w-full p-2.5 bg-[#F2E5D0] border border-[#C99A3C] text-xs font-serif text-[#1F1710] rounded-xs"
@@ -160,10 +162,11 @@ export default function FinalAccusationScreen({
 
             {/* Modus Operandi Description */}
             <div>
-              <label className="block font-mono text-xs uppercase font-bold text-[#594333] mb-1.5">
+              <label htmlFor="accusation-method-text" className="block font-mono text-xs uppercase font-bold text-[#594333] mb-1.5">
                 3. Modus Operandi & Method:
               </label>
               <textarea
+                id="accusation-method-text"
                 value={method}
                 onChange={(e) => setMethod(e.target.value)}
                 placeholder="Explain how Abir Basu was extracted from Seat 14 and transferred to Strand Road warehouse..."
@@ -187,10 +190,13 @@ export default function FinalAccusationScreen({
                 {accessibleClues.map((clue) => {
                   const isChecked = selectedClues.includes(clue.id);
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={clue.id}
+                      data-clue-id={clue.id}
+                      aria-pressed={isChecked}
                       onClick={() => toggleClue(clue.id)}
-                      className={`p-3 rounded-xs border cursor-pointer transition-all ${
+                      className={`p-3 rounded-xs border cursor-pointer transition-all text-left w-full focus:outline-none focus:ring-2 focus:ring-[#8C2D32] ${
                         isChecked
                           ? "bg-[#F2E5D0] border-[#8C2D32] shadow-sm scale-102"
                           : "bg-[#FAF4E8] border-[#D4B26F]/60 hover:bg-[#F7EFE0]"
@@ -207,7 +213,7 @@ export default function FinalAccusationScreen({
                       <h4 className="font-serif font-bold text-xs text-[#1F1710] line-clamp-2">
                         {clue.title}
                       </h4>
-                    </div>
+                    </button>
                   );
                 })}
               </div>

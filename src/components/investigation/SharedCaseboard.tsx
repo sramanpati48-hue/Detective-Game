@@ -350,6 +350,7 @@ export default function SharedCaseboard({
                     src={clue.image}
                     alt={clue.title}
                     fill
+                    sizes="200px"
                     className="object-cover contrast-[1.05]"
                   />
                 </div>

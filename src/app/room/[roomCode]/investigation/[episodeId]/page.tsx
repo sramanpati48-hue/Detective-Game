@@ -33,6 +33,8 @@ import RevealCinematic from "@/components/investigation/RevealCinematic";
 import ResultsScreen from "@/components/investigation/ResultsScreen";
 import EpisodeUnlockTransition from "@/components/investigation/EpisodeUnlockTransition";
 import TutorialOverlay from "@/components/tutorial/TutorialOverlay";
+import EpisodeObjectivesDocket from "@/components/investigation/EpisodeObjectivesDocket";
+import { getEpisodeObjectives } from "@/lib/game/episodeObjectives";
 
 import {
   Folder,
@@ -50,6 +52,7 @@ import {
   WifiOff,
   BookOpen,
   Sparkles,
+  Target,
 } from "lucide-react";
 
 export default function InvestigationPage({
@@ -82,6 +85,50 @@ export default function InvestigationPage({
   // 3-Step Dynamic Onboarding Field Guide State
   const [isTutorialActive, setIsTutorialActive] = useState(false);
   const [tutorialProgress, setTutorialProgress] = useState<TutorialProgress>(INITIAL_TUTORIAL_PROGRESS);
+
+  // Goal-Based Objective Tracking for Field Docket
+  const [inspectedClueIds, setInspectedClueIds] = useState<string[]>([]);
+  const [reviewedWitnessIds, setReviewedWitnessIds] = useState<string[]>([]);
+  const [reviewedTimeline, setReviewedTimeline] = useState(false);
+
+  // Track inspected clues automatically
+  useEffect(() => {
+    if (store.selectedClueId) {
+      setInspectedClueIds((prev) =>
+        prev.includes(store.selectedClueId!) ? prev : [...prev, store.selectedClueId!]
+      );
+    }
+  }, [store.selectedClueId]);
+
+  // Track reviewed witnesses automatically
+  useEffect(() => {
+    if (store.selectedWitnessId) {
+      setReviewedWitnessIds((prev) =>
+        prev.includes(store.selectedWitnessId!) ? prev : [...prev, store.selectedWitnessId!]
+      );
+    }
+  }, [store.selectedWitnessId]);
+
+  // Track reviewed timeline automatically
+  useEffect(() => {
+    if (store.activeTab === "timeline") {
+      setReviewedTimeline(true);
+    }
+  }, [store.activeTab]);
+
+  // Compute dynamic episode objectives
+  const {
+    objectives: episodeObjectives,
+    completedCount: objectivesCompletedCount,
+    allCompleted: allObjectivesCompleted,
+    currentObjective,
+  } = getEpisodeObjectives(currentEp.episodeNumber, {
+    inspectedClueIds,
+    reviewedWitnessIds,
+    pinnedClueCount: store.caseboardPins.length,
+    reviewedTimeline,
+    checkpointPassed: currentCheckpointStatus.passed,
+  });
 
   // Initialize Store with roomCode
   useEffect(() => {
@@ -206,6 +253,9 @@ export default function InvestigationPage({
             >
               <span className="text-[#D9C7A6]/70">EPISODE:</span>
               <select
+                id="header-episode-selector"
+                name="header-episode-selector"
+                aria-label="Select Investigation Episode"
                 value={currentEp.id}
                 onChange={(e) => {
                   const targetId = e.target.value;
@@ -256,6 +306,22 @@ export default function InvestigationPage({
               <span className="font-bold text-[#E8C66A]">{currentIQS}</span>
               <span className="text-[10px] text-[#3FB950] font-bold">
                 {currentIQS >= 90 ? "A+" : currentIQS >= 80 ? "A" : currentIQS >= 65 ? "B" : "C"}
+              </span>
+            </div>
+
+            {/* Live Operational Objectives Counter */}
+            <div
+              className={`flex items-center gap-1.5 px-3 py-1 bg-[#241A13] border rounded-xs font-mono text-xs ${
+                allObjectivesCompleted
+                  ? "border-[#3FB950]/60 text-[#8CE5B0]"
+                  : "border-[#C99A3C]/40 text-[#E8C66A]"
+              }`}
+              title="Operational Objectives Progress"
+            >
+              <Target className={`w-3.5 h-3.5 ${allObjectivesCompleted ? "text-[#8CE5B0]" : "text-[#E8C66A]"}`} />
+              <span className="text-[#D9C7A6]/70 hidden sm:inline">GOALS:</span>
+              <span className="font-bold">
+                {objectivesCompletedCount}/{episodeObjectives.length}
               </span>
             </div>
 
@@ -314,11 +380,19 @@ export default function InvestigationPage({
               className={`px-4 py-1.5 rounded-xs font-serif text-xs uppercase tracking-wider font-bold flex items-center gap-1.5 border shadow-md cursor-pointer transition-all ${
                 currentCheckpointStatus.passed
                   ? "bg-[#2B4C3F] text-[#FAF4E8] border-[#3FB950]"
-                  : "bg-[#702428] hover:bg-[#852C32] text-[#FAF4E8] border-[#C99A3C] animate-pulse"
+                  : currentObjective?.category === "checkpoint"
+                  ? "bg-[#8C2D32] hover:bg-[#A3343A] text-[#FAF4E8] border-[#E8C66A] ring-2 ring-[#E8C66A] shadow-[0_0_15px_rgba(232,198,106,0.65)] animate-pulse"
+                  : "bg-[#702428] hover:bg-[#852C32] text-[#FAF4E8] border-[#C99A3C]"
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>{currentCheckpointStatus.passed ? "Checkpoint Cleared" : "Review Checkpoint"}</span>
+              <span>
+                {currentCheckpointStatus.passed
+                  ? "Checkpoint Cleared"
+                  : currentObjective?.category === "checkpoint"
+                  ? "Clear Checkpoint 1"
+                  : "Review Checkpoint"}
+              </span>
             </button>
 
             {/* Climax Button if Episode 5 */}
@@ -337,15 +411,16 @@ export default function InvestigationPage({
         {/* Tab Navigation Toolbar */}
         <div className="max-w-7xl mx-auto mt-3 pt-2 border-t border-[#3D2C20] flex items-center justify-start sm:justify-center gap-2 overflow-x-auto no-scrollbar py-1">
           {[
-            { id: "briefing", label: "Briefing", icon: Folder },
-            { id: "evidence", label: `Evidence (${accessibleClues.length})`, icon: FileText },
-            { id: "witnesses", label: `Witnesses (${allCaseWitnesses.length})`, icon: Users },
-            { id: "caseboard", label: "Caseboard", icon: Pin },
-            { id: "timeline", label: "Timeline & Links", icon: Clock },
-            { id: "chat", label: "Squad Telegraph", icon: Radio },
+            { id: "briefing", label: "Briefing", icon: Folder, category: "briefing" },
+            { id: "evidence", label: `Evidence (${accessibleClues.length})`, icon: FileText, category: "forensic" },
+            { id: "witnesses", label: `Witnesses (${allCaseWitnesses.length})`, icon: Users, category: "witness" },
+            { id: "caseboard", label: "Caseboard", icon: Pin, category: "caseboard" },
+            { id: "timeline", label: "Timeline & Links", icon: Clock, category: "timeline" },
+            { id: "chat", label: "Squad Telegraph", icon: Radio, category: "chat" },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = store.activeTab === tab.id;
+            const isObjectiveTarget = currentObjective?.category === tab.category && !isActive;
             const isCaseboardHighlight =
               tab.id === "caseboard" &&
               isTutorialActive &&
@@ -365,14 +440,21 @@ export default function InvestigationPage({
                 className={`px-3.5 py-1.5 rounded-xs font-serif text-xs uppercase tracking-wider flex items-center gap-2 shrink-0 transition-all cursor-pointer ${
                   isActive
                     ? "bg-[#FAF4E8] text-[#1F1710] font-bold border border-[#C99A3C] shadow-md"
+                    : isObjectiveTarget
+                    ? "bg-[#2A1B12] text-[#E8C66A] font-bold border-2 border-[#C99A3C] shadow-[0_0_12px_rgba(201,154,60,0.4)] animate-pulse"
                     : isCaseboardHighlight
                     ? "bg-[#854d0e]/50 text-[#fef3c7] font-bold border-2 border-[#E8C66A] ring-2 ring-[#E8C66A] shadow-[0_0_15px_rgba(232,198,106,0.7)] animate-pulse"
                     : "bg-[#18110C] text-[#D9C7A6] hover:bg-[#261A13] border border-[#3D2C20]"
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#8C2D32]" : isCaseboardHighlight ? "text-[#E8C66A]" : "text-[#C99A3C]"}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#8C2D32]" : isObjectiveTarget || isCaseboardHighlight ? "text-[#E8C66A]" : "text-[#C99A3C]"}`} />
                 <span>{tab.label}</span>
-                {isCaseboardHighlight && (
+                {isObjectiveTarget && (
+                  <span className="font-mono text-[9px] uppercase font-bold text-[#E8C66A] bg-[#702428] px-1 py-0.2 rounded-xs border border-[#C99A3C]">
+                    Next Goal
+                  </span>
+                )}
+                {isCaseboardHighlight && !isObjectiveTarget && (
                   <span className="font-mono text-[9px] uppercase font-bold text-[#E8C66A] bg-[#1c1917] px-1 py-0.2 rounded-xs border border-[#854d0e] animate-pulse">
                     Step 3
                   </span>
@@ -391,7 +473,6 @@ export default function InvestigationPage({
             episode={currentEp}
             onProceed={() => {
               store.setActiveTab("evidence");
-              setIsTutorialActive(true);
             }}
             isMuted={store.isMuted}
             onToggleMute={store.toggleMute}
@@ -411,7 +492,7 @@ export default function InvestigationPage({
               </div>
               <div className="flex items-center gap-3">
                 <span className="font-mono text-xs text-[#D9C7A6]/70">
-                  {myClues.length} in Your Inventory &bull; {store.sharedEvidenceIds.length} Shared
+                  {myClues.length} in Your Inventory &bull; {store.sharedEvidenceIds.length} Shared &bull; {inspectedClueIds.length}/{accessibleClues.length} Examined
                 </span>
               </div>
             </div>
@@ -421,19 +502,44 @@ export default function InvestigationPage({
               {accessibleClues.map((clue, idx) => {
                 const isShared = store.sharedEvidenceIds.includes(clue.id);
                 const isPinned = store.caseboardPins.some((p) => p.evidenceId === clue.id);
+                const isInspected = inspectedClueIds.includes(clue.id);
+                const isGoalExhibit =
+                  currentObjective?.category === "forensic" &&
+                  (!isInspected || currentObjective.recommendedClueId === clue.id);
                 const isStep1Highlight = idx === 0 && isTutorialActive && !tutorialProgress.inspectedClue;
 
                 return (
                   <div
                     key={clue.id}
+                    role="button"
+                    tabIndex={0}
+                    data-clue-id={clue.id}
+                    aria-label={`Inspect exhibit: ${clue.title}`}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        store.setSelectedClueId(clue.id);
+                        if (!inspectedClueIds.includes(clue.id)) {
+                          setInspectedClueIds((prev) => [...prev, clue.id]);
+                        }
+                        if (!tutorialProgress.inspectedClue) {
+                          setTutorialProgress((prev) => ({ ...prev, inspectedClue: true }));
+                        }
+                      }
+                    }}
                     onClick={() => {
                       store.setSelectedClueId(clue.id);
+                      if (!inspectedClueIds.includes(clue.id)) {
+                        setInspectedClueIds((prev) => [...prev, clue.id]);
+                      }
                       if (!tutorialProgress.inspectedClue) {
                         setTutorialProgress((prev) => ({ ...prev, inspectedClue: true }));
                       }
                     }}
-                    className={`bg-[#FAF4E8] text-[#1F1710] rounded-sm p-5 border-2 shadow-lg flex flex-col justify-between cursor-pointer transition-all hover:border-[#8C2D32] hover:scale-[1.01] relative bg-[radial-gradient(#E8DAC2_1px,transparent_1px)] [background-size:14px_14px] ${
-                      isStep1Highlight
+                    className={`bg-[#FAF4E8] text-[#1F1710] rounded-sm p-5 border-2 shadow-lg flex flex-col justify-between cursor-pointer transition-all hover:border-[#8C2D32] hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-[#8C2D32] relative bg-[radial-gradient(#E8DAC2_1px,transparent_1px)] [background-size:14px_14px] ${
+                      isGoalExhibit
+                        ? "border-[#C99A3C] ring-2 ring-[#C99A3C]/70 shadow-[0_0_20px_rgba(201,154,60,0.5)]"
+                        : isStep1Highlight
                         ? "border-[#E8C66A] ring-2 ring-[#E8C66A] ring-offset-2 ring-offset-[#0D0906] shadow-[0_0_20px_rgba(232,198,106,0.65)] animate-pulse"
                         : "border-[#D4B26F]/60"
                     }`}
@@ -446,17 +552,24 @@ export default function InvestigationPage({
                             src={clue.image}
                             alt={clue.title}
                             fill
+                            priority={idx === 0}
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-cover"
                           />
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <div className="flex items-center gap-1.5">
+                      <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-mono text-[10px] uppercase font-bold text-[#8C2D32] px-1.5 py-0.5 bg-[#F2E5D0] rounded-xs border border-[#C99A3C]/40">
                             {clue.type}
                           </span>
-                          {isStep1Highlight && (
+                          {isGoalExhibit && (
+                            <span className="font-mono text-[9px] uppercase font-bold text-[#702428] bg-[#F2E5D0] px-1.5 py-0.5 rounded-xs flex items-center gap-1 border border-[#8C2D32]/50 shadow-xs animate-pulse">
+                              <Target className="w-2.5 h-2.5 text-[#8C2D32]" /> Goal Target
+                            </span>
+                          )}
+                          {isStep1Highlight && !isGoalExhibit && (
                             <span className="font-mono text-[9px] uppercase font-bold text-[#fef3c7] bg-[#854d0e] px-1.5 py-0.5 rounded-xs flex items-center gap-1 border border-[#E8C66A]/60 shadow-sm">
                               <Sparkles className="w-2.5 h-2.5 text-[#E8C66A]" /> Step 1: Inspect
                             </span>
@@ -482,8 +595,13 @@ export default function InvestigationPage({
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-[#D4B26F]/50 flex items-center justify-between text-xs font-mono text-[#8C2D32]">
-                      <span className="underline">Inspect Full Exhibit &rarr;</span>
-                      {isPinned && <span className="text-[#C99A3C] font-bold">&bull; On Board</span>}
+                      <span className="underline">
+                        {isInspected ? "Re-examine Exhibit &rarr;" : "Inspect Full Exhibit &rarr;"}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {isInspected && <span className="text-[#2B4C3F] font-bold">✓ Examined</span>}
+                        {isPinned && <span className="text-[#C99A3C] font-bold">&bull; On Board</span>}
+                      </div>
                     </div>
                   </div>
                 );
@@ -675,6 +793,18 @@ export default function InvestigationPage({
         onComplete={() => {
           setIsTutorialActive(false);
         }}
+      />
+
+      {/* Persistent Goal-Based Field Docket HUD (Episode 1 Orientation & Objectives) */}
+      <EpisodeObjectivesDocket
+        objectives={episodeObjectives}
+        completedCount={objectivesCompletedCount}
+        allCompleted={allObjectivesCompleted}
+        currentObjective={currentObjective}
+        onNavigateTab={(tab) => store.setActiveTab(tab)}
+        onOpenCheckpointModal={() => store.setCheckpointModalOpen(true)}
+        onOpenClue={(clueId) => store.setSelectedClueId(clueId)}
+        activeTab={store.activeTab}
       />
 
       {/* Noir Footer */}

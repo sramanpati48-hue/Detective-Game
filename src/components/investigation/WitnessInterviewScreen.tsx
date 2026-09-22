@@ -111,6 +111,7 @@ export default function WitnessInterviewScreen({
                     src={witness.avatar}
                     alt={witness.name}
                     fill
+                    sizes="48px"
                     className="object-cover sepia-[0.2]"
                   />
                 </div>
@@ -148,6 +149,7 @@ export default function WitnessInterviewScreen({
                   src={activeWitness.avatar}
                   alt={activeWitness.name}
                   fill
+                  sizes="80px"
                   className="object-cover"
                 />
               </div>

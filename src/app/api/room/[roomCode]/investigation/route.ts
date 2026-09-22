@@ -130,12 +130,9 @@ function getOrCreateRoom(roomCode: string): RoomInvestigationState {
 }
 
 /**
- * Distributes clues for the current episode to players based on solo/duo/squad assignment
+ * Distributes clues for all unlocked episodes to players based on solo/duo/squad assignment
  */
-function ensurePlayerClues(state: RoomInvestigationState, playerId: string, episodeId: string) {
-  const episode = getEpisodeById(episodeId);
-  if (!episode) return;
-
+function ensurePlayerClues(state: RoomInvestigationState, playerId: string, episodeId?: string) {
   if (!state.playerEvidence[playerId]) {
     state.playerEvidence[playerId] = [];
   }
@@ -146,45 +143,70 @@ function ensurePlayerClues(state: RoomInvestigationState, playerId: string, epis
     state.roomCode.startsWith("SOLO") ||
     Object.keys(state.players).length <= 1;
 
-  if (isSolo) {
-    episode.clues.forEach((clue) => {
-      if (!existing.has(clue.id)) {
-        state.playerEvidence[playerId].push(clue.id);
-      }
-    });
-    return;
+  // Determine episodes to distribute clues from: all unlocked episodes + specified episode if any
+  const episodeKeys = new Set(state.unlockedEpisodes);
+  if (episodeId) {
+    episodeKeys.add(episodeId);
+  }
+  if (episodeKeys.size === 0) {
+    episodeKeys.add(state.currentEpisodeId);
   }
 
-  // Multiplayer / Squad Room Mode: determine player slot (0-indexed)
   const playerIds = Object.keys(state.players);
   let playerIndex = playerIds.indexOf(playerId);
   if (playerIndex < 0) playerIndex = 0;
 
-  episode.clues.forEach((clue) => {
-    if (playerIndex === 0) {
-      // Player 1 (Lead Investigator): physical exhibits & crime scene photos
-      if (clue.isPrivateTo === "player_1" || clue.type === "photo" || clue.type === "physical") {
-        if (!existing.has(clue.id)) state.playerEvidence[playerId].push(clue.id);
-      }
-    } else if (playerIndex === 1) {
-      // Player 2 (Analyst): documents, official memos, forensics, and audio recordings
-      if (
-        clue.isPrivateTo === "player_2" ||
-        clue.type === "document" ||
-        clue.type === "forensic" ||
-        clue.type === "audio"
-      ) {
-        if (!existing.has(clue.id)) state.playerEvidence[playerId].push(clue.id);
-      }
+  for (const epKey of episodeKeys) {
+    const episode = getEpisodeById(epKey);
+    if (!episode || !episode.clues) continue;
+
+    if (isSolo) {
+      episode.clues.forEach((clue) => {
+        if (!existing.has(clue.id)) {
+          state.playerEvidence[playerId].push(clue.id);
+          existing.add(clue.id);
+        }
+      });
     } else {
-      // Player 3/4: split or general
-      if (playerIndex % 2 === 0 && (clue.type === "photo" || clue.type === "physical")) {
-        if (!existing.has(clue.id)) state.playerEvidence[playerId].push(clue.id);
-      } else if (clue.type === "document" || clue.type === "forensic" || clue.type === "audio") {
-        if (!existing.has(clue.id)) state.playerEvidence[playerId].push(clue.id);
-      }
+      episode.clues.forEach((clue) => {
+        if (playerIndex === 0) {
+          // Player 1 (Lead Investigator): physical exhibits & crime scene photos
+          if (clue.isPrivateTo === "player_1" || clue.type === "photo" || clue.type === "physical") {
+            if (!existing.has(clue.id)) {
+              state.playerEvidence[playerId].push(clue.id);
+              existing.add(clue.id);
+            }
+          }
+        } else if (playerIndex === 1) {
+          // Player 2 (Analyst): documents, official memos, forensics, and audio recordings
+          if (
+            clue.isPrivateTo === "player_2" ||
+            clue.type === "document" ||
+            clue.type === "forensic" ||
+            clue.type === "audio"
+          ) {
+            if (!existing.has(clue.id)) {
+              state.playerEvidence[playerId].push(clue.id);
+              existing.add(clue.id);
+            }
+          }
+        } else {
+          // Player 3/4: split or general
+          if (playerIndex % 2 === 0 && (clue.type === "photo" || clue.type === "physical")) {
+            if (!existing.has(clue.id)) {
+              state.playerEvidence[playerId].push(clue.id);
+              existing.add(clue.id);
+            }
+          } else if (clue.type === "document" || clue.type === "forensic" || clue.type === "audio") {
+            if (!existing.has(clue.id)) {
+              state.playerEvidence[playerId].push(clue.id);
+              existing.add(clue.id);
+            }
+          }
+        }
+      });
     }
-  });
+  }
 }
 
 // GET: Retrieve state scoped for requesting player

@@ -136,6 +136,8 @@ export default function EvidenceViewerModal({
                 src={clue.image}
                 alt={clue.title}
                 fill
+                priority
+                sizes="(max-width: 768px) 100vw, 700px"
                 className="object-cover contrast-[1.05]"
               />
             </div>

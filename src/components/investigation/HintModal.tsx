@@ -113,6 +113,9 @@ export default function HintModal({
                       </span>
 
                       <button
+                        type="button"
+                        data-hint-tier={t.tier}
+                        aria-label={`Reveal Hint Tier ${t.tier}`}
                         onClick={() => {
                           soundManager.playPaperSlide();
                           onUnlockHint(t.tier);

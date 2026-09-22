@@ -86,6 +86,7 @@ export default function RevealCinematic({ onComplete }: RevealCinematicProps) {
               src={stage.image}
               alt={stage.title}
               fill
+              sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover contrast-[1.1] sepia-[0.2]"
               priority
             />
