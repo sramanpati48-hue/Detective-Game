@@ -1,9 +1,9 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { ClueItem } from "@/lib/data/cases/the-last-ferry";
 import { soundManager } from "@/lib/audio/soundManager";
-import { X, Pin, Share2, Tag, FileText, Check, ShieldAlert } from "lucide-react";
+import { X, Pin, Share2, Tag, FileText, Check, ShieldAlert, ArrowDown, Play, Pause, Volume2 } from "lucide-react";
 
 interface EvidenceViewerModalProps {
   clue: ClueItem | null;
@@ -13,6 +13,7 @@ interface EvidenceViewerModalProps {
   onAttachToChat: (clueId: string) => void;
   isShared: boolean;
   isPinned: boolean;
+  highlightPin?: boolean;
 }
 
 export default function EvidenceViewerModal({
@@ -23,8 +24,40 @@ export default function EvidenceViewerModal({
   onAttachToChat,
   isShared,
   isPinned,
+  highlightPin = false,
 }: EvidenceViewerModalProps) {
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [stopFn, setStopFn] = useState<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (stopFn) stopFn();
+    };
+  }, [stopFn]);
+
   if (!clue) return null;
+
+  const toggleVoiceNote = () => {
+    if (isPlayingAudio) {
+      if (stopFn) stopFn();
+      setIsPlayingAudio(false);
+    } else {
+      setIsPlayingAudio(true);
+      const voiceText = clue.details || clue.summary;
+      const player = soundManager.playVoiceNote(
+        voiceText,
+        () => {
+          setIsPlayingAudio(false);
+          setAudioProgress(100);
+        },
+        (pct) => {
+          setAudioProgress(pct);
+        }
+      );
+      setStopFn(() => player.stop);
+    }
+  };
 
   const handleShare = () => {
     soundManager.playBrassPin();
@@ -108,6 +141,54 @@ export default function EvidenceViewerModal({
             </div>
           )}
 
+          {/* Audio Player for Audio Exhibits (e.g. Rina's Distress Voice Memo) */}
+          {clue.type === "audio" && (
+            <div className="p-4 bg-[#241A13] text-[#FAF4E8] rounded-xs border-2 border-[#C99A3C]/60 shadow-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Volume2 className="w-4 h-4 text-[#E8C66A] animate-pulse" />
+                  <span className="font-mono text-xs tracking-widest text-[#E8C66A] uppercase font-bold">
+                    RECOVERED AUDIO TAPE &bull; EVIDENCE WIRE
+                  </span>
+                </div>
+                <span className="font-mono text-[11px] text-[#D9C7A6]">
+                  {isPlayingAudio ? "TRANSMITTING..." : "00:24 / 00:24"}
+                </span>
+              </div>
+
+              {/* Waveform Visualization */}
+              <div className="flex items-center gap-1 h-8 px-2 bg-[#120D09] rounded-xs border border-[#3D2C20]">
+                {Array.from({ length: 32 }).map((_, i) => {
+                  const barProgress = (i / 32) * 100;
+                  const isActive = barProgress <= audioProgress;
+                  const baseHeight = ((i * 7) % 20) + 6;
+                  const currentHeight = isPlayingAudio
+                    ? Math.max(5, baseHeight + Math.sin(Date.now() / 200 + i) * 8)
+                    : baseHeight;
+                  return (
+                    <div
+                      key={i}
+                      style={{ height: `${currentHeight}px` }}
+                      className={`flex-1 rounded-xs transition-all duration-100 ${
+                        isActive
+                          ? "bg-gradient-to-t from-[#8C2D32] to-[#E8C66A]"
+                          : "bg-[#3D2C20]/80"
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={toggleVoiceNote}
+                className="w-full py-2 bg-[#8C2D32] hover:bg-[#A3343A] text-[#FAF4E8] rounded-xs font-serif text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+              >
+                {isPlayingAudio ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                <span>{isPlayingAudio ? "Pause Audio Memo" : "Play Voice Memo Recording"}</span>
+              </button>
+            </div>
+          )}
+
           {/* Summary */}
           <div className="p-4 bg-[#F2E5D0] rounded-xs border-l-4 border-[#C99A3C] shadow-xs">
             <h4 className="font-mono text-xs uppercase tracking-widest text-[#702428] font-bold mb-1">
@@ -162,14 +243,26 @@ export default function EvidenceViewerModal({
                 <span>Share with Room</span>
               </button>
             )}
-            <button
-              data-tutorial-id="tutorial-add-to-journal"
-              onClick={handlePin}
-              className="px-4 py-2 bg-[#C99A3C] hover:bg-[#D4A94B] text-[#1F1710] rounded-xs font-serif text-xs uppercase tracking-wider font-bold flex items-center gap-2 shadow-md cursor-pointer transition-colors"
-            >
-              <Pin className="w-3.5 h-3.5" />
-              <span>{isPinned ? "Move Pin on Board" : "Pin to Journal / Board"}</span>
-            </button>
+            <div className="relative">
+              {highlightPin && !isPinned && (
+                <div className="absolute -top-11 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 px-2.5 py-1 bg-[#1c1917] border border-[#854d0e] text-[#fef3c7] text-[11px] font-mono rounded-xs shadow-xl flex items-center gap-1.5 whitespace-nowrap animate-bounce z-30 pointer-events-none">
+                  <span>Pins this fact to your team&apos;s caseboard</span>
+                  <ArrowDown className="w-3 h-3 text-[#fef3c7]" />
+                </div>
+              )}
+              <button
+                data-tutorial-id="tutorial-add-to-journal"
+                onClick={handlePin}
+                className={`px-4 py-2 bg-[#C99A3C] hover:bg-[#D4A94B] text-[#1F1710] rounded-xs font-serif text-xs uppercase tracking-wider font-bold flex items-center gap-2 shadow-md cursor-pointer transition-all ${
+                  highlightPin && !isPinned
+                    ? "ring-2 ring-[#C99A3C] ring-offset-2 ring-offset-[#EFE3CF] shadow-[0_0_15px_rgba(201,154,60,0.6)]"
+                    : ""
+                }`}
+              >
+                <Pin className="w-3.5 h-3.5" />
+                <span>{isPinned ? "Move Pin on Board" : "Pin to Journal / Board"}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

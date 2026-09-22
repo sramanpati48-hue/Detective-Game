@@ -142,7 +142,6 @@ export default function CheckpointModal({
                     return (
                       <label
                         key={clue.id}
-                        onClick={() => toggleClue(clue.id)}
                         className={`flex items-start gap-2.5 p-2.5 rounded-xs border cursor-pointer transition-colors ${
                           isChecked
                             ? "bg-[#F2E5D0] border-[#8C2D32] text-[#1F1710]"
@@ -152,7 +151,7 @@ export default function CheckpointModal({
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => {}}
+                          onChange={() => toggleClue(clue.id)}
                           className="mt-0.5 accent-[#8C2D32]"
                         />
                         <div className="flex-1 min-w-0">

@@ -127,6 +127,11 @@ export default function DetectiveSelectScreen({
         return;
       }
 
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`bhorer_detective_id_${roomCode}`, selectedDetective.id);
+        localStorage.setItem(`bhorer_detective_name_${roomCode}`, selectedDetective.name);
+      }
+
       showToast(`Selected ${selectedDetective.name}! Joining lobby...`, "success");
       setTimeout(() => {
         router.push(`/room/${roomCode}/lobby`);

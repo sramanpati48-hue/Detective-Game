@@ -1,10 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Play, ArrowRight } from "lucide-react";
+import Image from "next/image";
+import { Play, ArrowRight, X, Film, Volume2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import TotalLiveBackground from "@/components/effects/TotalLiveBackground";
+import { soundManager } from "@/lib/audio/soundManager";
 
 const TRANSLATIONS = [
   {
@@ -47,6 +49,7 @@ const TRANSLATIONS = [
 
 export default function Home() {
   const [activeIdx, setActiveIdx] = useState(0);
+  const [showTrailer, setShowTrailer] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -140,7 +143,13 @@ export default function Home() {
               </button>
             </Link>
             
-            <button className="group flex items-center gap-3 text-[#EAE1D1] hover:text-[#E8C66A] font-serif text-sm tracking-[0.2em] uppercase transition-colors drop-shadow-md cursor-pointer">
+            <button 
+              onClick={() => {
+                soundManager.playTensionSting();
+                setShowTrailer(true);
+              }}
+              className="group flex items-center gap-3 text-[#EAE1D1] hover:text-[#E8C66A] font-serif text-sm tracking-[0.2em] uppercase transition-colors drop-shadow-md cursor-pointer"
+            >
               <div className="w-12 h-12 rounded-full border-2 border-[#D9C7A6]/50 group-hover:border-[#E8C66A] flex items-center justify-center bg-black/40 backdrop-blur-md transition-colors">
                 <Play className="w-4 h-4 ml-1 fill-current" />
               </div>
@@ -150,6 +159,100 @@ export default function Home() {
         </div>
 
       </main>
+
+      {/* ATMOSPHERIC NOIR TRAILER / CINEMATIC TEASER MODAL */}
+      <AnimatePresence>
+        {showTrailer && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md font-serif"
+          >
+            <motion.div
+              initial={{ scale: 0.94, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.94, opacity: 0 }}
+              className="relative w-full max-w-3xl bg-[#140E0A] text-[#FAF4E8] rounded-sm border-2 border-[#C99A3C] shadow-[0_30px_90px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col"
+            >
+              {/* Header Ribbon */}
+              <div className="bg-[#241A13] px-6 py-3 border-b border-[#C99A3C]/40 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-mono text-[#E8C66A]">
+                  <Film className="w-4 h-4 text-[#E8C66A]" />
+                  <span className="uppercase tracking-widest font-bold">
+                    OFFICIAL TEASER &bull; BHORER SHAHAR: CASE FILES
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowTrailer(false)}
+                  className="p-1 rounded text-[#D9C7A6] hover:text-[#FAF4E8] transition-colors cursor-pointer"
+                  aria-label="Close Teaser"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Cinematic Visual Frame */}
+              <div className="relative w-full aspect-[16/9] bg-[#0A0705] overflow-hidden border-b border-[#C99A3C]/30">
+                <Image
+                  src="/cases/the-last-ferry/scene_deck_night.jpg"
+                  alt="The Last Ferry Night Deck"
+                  fill
+                  className="object-cover contrast-[1.15] brightness-[0.85]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#140E0A] via-transparent to-black/40" />
+
+                {/* Ambient audio badge */}
+                <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2 px-3 py-1 rounded-xs bg-[#1A120D]/90 border border-[#C99A3C]/40 text-xs font-mono text-[#E8C66A]">
+                  <Volume2 className="w-3.5 h-3.5 animate-pulse" />
+                  <span className="tracking-wider uppercase text-[10px]">
+                    Kolkata Monsoon Soundscape &bull; Bhairavi Channel
+                  </span>
+                </div>
+              </div>
+
+              {/* Monologue & Pitch Text */}
+              <div className="p-6 md:p-8 space-y-4">
+                <div className="space-y-2">
+                  <span className="font-mono text-xs uppercase tracking-widest text-[#8C2D32] font-bold">
+                    Case 001: The Last Ferry &bull; Bengal CID 1974
+                  </span>
+                  <h3 className="font-serif text-2xl md:text-3xl font-bold text-[#FAF4E8]">
+                    A Midnight Crossing. A Staged Accidental Drowning.
+                  </h3>
+                </div>
+
+                <p className="font-serif text-sm md:text-base text-[#D9C7A6]/90 leading-relaxed italic border-l-2 border-[#C99A3C] pl-4">
+                  &ldquo;October 1974. Heavy storm over Nabadwip Ghat. The 10:15 ferry MV Sonartori casts off into the squall. When the vessel docks, chartered accountant Abir Basu has vanished. His dry umbrella stands upright under Seat 14. An 11-minute CCTV blackout shields the lower hatch. Step into the shoes of Lalbazar detectives to crack the syndicate.&rdquo;
+                </p>
+
+                {/* Footer Buttons */}
+                <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[#3D2C20]">
+                  <span className="font-mono text-xs text-[#E8C66A]/70">
+                    Solo &bull; Duo &bull; 4-Player Co-op
+                  </span>
+
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <button
+                      onClick={() => setShowTrailer(false)}
+                      className="flex-1 sm:flex-none px-5 py-2.5 bg-[#241A13] hover:bg-[#332216] text-[#D9C7A6] rounded-xs font-serif text-xs uppercase tracking-wider transition-colors cursor-pointer border border-[#4A382A]"
+                    >
+                      Dismiss
+                    </button>
+
+                    <Link href="/cases/the-last-ferry" className="flex-1 sm:flex-none">
+                      <button className="w-full px-6 py-2.5 bg-[#752a32] hover:bg-[#8e292b] text-[#FAF4E8] rounded-xs font-serif text-xs uppercase tracking-wider font-bold shadow-lg flex items-center justify-center gap-2 border border-[#A84743] cursor-pointer transition-all">
+                        <span>Launch Investigation</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Embedded CSS for Live Animations */}
       <style dangerouslySetInnerHTML={{__html: `

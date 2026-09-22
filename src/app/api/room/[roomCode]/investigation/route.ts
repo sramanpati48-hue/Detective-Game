@@ -141,7 +141,10 @@ function ensurePlayerClues(state: RoomInvestigationState, playerId: string, epis
   }
 
   const existing = new Set(state.playerEvidence[playerId]);
-  const isSolo = playerId.startsWith("solo") || state.roomCode.startsWith("SOLO");
+  const isSolo =
+    playerId.startsWith("solo") ||
+    state.roomCode.startsWith("SOLO") ||
+    Object.keys(state.players).length <= 1;
 
   if (isSolo) {
     episode.clues.forEach((clue) => {
@@ -299,6 +302,27 @@ export async function POST(
         break;
       }
 
+      // 2b. Remove pin from caseboard
+      case "unpin_evidence": {
+        const { evidenceId } = payload;
+        if (evidenceId) {
+          state.caseboardPins = state.caseboardPins.filter((p) => p.evidenceId !== evidenceId);
+          state.caseboardConnections = state.caseboardConnections.filter(
+            (c) => c.sourceEvidenceId !== evidenceId && c.targetEvidenceId !== evidenceId
+          );
+        }
+        break;
+      }
+
+      // 2c. Remove connection line
+      case "delete_connection": {
+        const { connectionId } = payload;
+        if (connectionId) {
+          state.caseboardConnections = state.caseboardConnections.filter((c) => c.id !== connectionId);
+        }
+        break;
+      }
+
       // 3. Connect two clues on caseboard
       case "connect_evidence": {
         const { sourcePinId, targetPinId, sourceEvidenceId, targetEvidenceId, deductionNotes } = payload;
@@ -401,15 +425,22 @@ export async function POST(
           (acc, c) => acc + c.hintsUsed.length,
           0
         );
+        const allHintsUsed: number[] = Object.values(state.checkpointStatus).flatMap((c) => c.hintsUsed);
         const totalAttempts = Object.values(state.checkpointStatus).reduce(
           (acc, c) => acc + Math.max(0, c.attempts - 1),
           0
         );
+        const isSoloRoom =
+          Object.keys(state.players).length <= 1 ||
+          state.roomCode.startsWith("SOLO") ||
+          playerId.startsWith("solo");
 
         const result = evaluateFinalAccusation(submission, {
           totalHintsUsed: totalHints,
+          hintsUsedByTier: allHintsUsed,
           failedAttempts: totalAttempts,
           sharedCount: state.sharedEvidence.length,
+          isSoloRoom,
         });
 
         state.finalAccusation = {
@@ -441,10 +472,19 @@ export async function POST(
       // 10. Switch current active episode
       case "switch_episode": {
         const { episodeId } = payload;
-        if (state.unlockedEpisodes.includes(episodeId)) {
-          state.currentEpisodeId = episodeId;
+        const targetEp = getEpisodeById(episodeId);
+        const isUnlocked =
+          targetEp &&
+          state.unlockedEpisodes.some((unlocked) => {
+            const ep = getEpisodeById(unlocked);
+            return ep?.episodeNumber === targetEp.episodeNumber;
+          });
+
+        if (targetEp && isUnlocked) {
+          const epKey = `ep${targetEp.episodeNumber}`;
+          state.currentEpisodeId = epKey;
           Object.keys(state.players).forEach((pId) => {
-            ensurePlayerClues(state, pId, episodeId);
+            ensurePlayerClues(state, pId, epKey);
           });
         }
         break;

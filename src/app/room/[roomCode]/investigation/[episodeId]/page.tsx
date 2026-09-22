@@ -9,10 +9,13 @@ import {
 } from "@/lib/game/useInvestigationStore";
 import {
   THE_LAST_FERRY_CASE,
+  getEpisodeById,
   getEpisodeByNumber,
 } from "@/lib/data/cases/the-last-ferry";
 import { FinalAccusationSubmission } from "@/lib/game/checkpointValidator";
 import { soundManager } from "@/lib/audio/soundManager";
+import { TutorialProgress, INITIAL_TUTORIAL_PROGRESS } from "@/lib/tutorial/steps";
+import { checkHasCompletedTutorial } from "@/lib/user/account";
 
 // 14 Investigation Components
 import EpisodeBriefingScreen from "@/components/investigation/EpisodeBriefingScreen";
@@ -46,6 +49,7 @@ import {
   Wifi,
   WifiOff,
   BookOpen,
+  Sparkles,
 } from "lucide-react";
 
 export default function InvestigationPage({
@@ -65,14 +69,19 @@ export default function InvestigationPage({
     attempts: 0,
     hintsUsed: [],
   };
-  const selectedClue = accessibleClues.find((c) => c.id === store.selectedClueId) || null;
+  const allCaseClues = THE_LAST_FERRY_CASE.episodes.flatMap((e) => e.clues);
+  const selectedClue = allCaseClues.find((c) => c.id === store.selectedClueId) || null;
+  const allCaseWitnesses = THE_LAST_FERRY_CASE.cast;
+  const allCaseDialogues = THE_LAST_FERRY_CASE.episodes.reduce((acc, ep) => {
+    return { ...acc, ...(ep.dialogueScripts || {}) };
+  }, {} as Record<string, import("@/lib/data/cases/the-last-ferry").DialogueLine[]>);
   const currentIQS = store.calculateCurrentIQS();
 
   const [transitionNextTitle, setTransitionNextTitle] = useState<string | null>(null);
   
-  // Tutorial State: Always trigger each time user starts an investigation
+  // 3-Step Dynamic Onboarding Field Guide State
   const [isTutorialActive, setIsTutorialActive] = useState(false);
-  const [hasStartedInvestigationSession, setHasStartedInvestigationSession] = useState(false);
+  const [tutorialProgress, setTutorialProgress] = useState<TutorialProgress>(INITIAL_TUTORIAL_PROGRESS);
 
   // Initialize Store with roomCode
   useEffect(() => {
@@ -91,18 +100,47 @@ export default function InvestigationPage({
 
   // Sync route episodeId with store currentEpisodeId if unlocked
   useEffect(() => {
-    if (episodeId && episodeId !== store.currentEpisodeId && store.unlockedEpisodes.includes(episodeId)) {
-      store.switchEpisode(episodeId);
+    if (!episodeId) return;
+    const targetEp = getEpisodeById(episodeId);
+    if (!targetEp) return;
+    const isUnlocked = store.unlockedEpisodes.some((unlocked) => {
+      const ep = getEpisodeById(unlocked);
+      return ep?.episodeNumber === targetEp.episodeNumber;
+    });
+    const currentStoreEp = store.getCurrentEpisode();
+    if (isUnlocked && currentStoreEp?.episodeNumber !== targetEp.episodeNumber) {
+      store.switchEpisode(`ep${targetEp.episodeNumber}`);
     }
-  }, [episodeId]);
+  }, [episodeId, store.unlockedEpisodes, store.currentEpisodeId]);
 
-  // Launch tutorial sequence automatically whenever the user starts investigation (when briefing closes or if starting in investigation)
+  // Check if player has already completed orientation tutorial
   useEffect(() => {
-    if (!hasStartedInvestigationSession && store.activeTab !== "briefing") {
-      setIsTutorialActive(true);
-      setHasStartedInvestigationSession(true);
+    let isMounted = true;
+    async function loadTutorialStatus() {
+      const completed = await checkHasCompletedTutorial(store.playerId);
+      if (isMounted && !completed) {
+        setIsTutorialActive(true);
+      }
     }
-  }, [hasStartedInvestigationSession, store.activeTab]);
+    loadTutorialStatus();
+    return () => {
+      isMounted = false;
+    };
+  }, [store.playerId]);
+
+  // Track if player has pinned evidence to shared caseboard
+  useEffect(() => {
+    if (store.caseboardPins.length > 0 && !tutorialProgress.pinnedEvidence) {
+      setTutorialProgress((prev) => ({ ...prev, pinnedEvidence: true }));
+    }
+  }, [store.caseboardPins.length, tutorialProgress.pinnedEvidence]);
+
+  // Track if player has reviewed the Caseboard or Timeline tab
+  useEffect(() => {
+    if ((store.activeTab === "caseboard" || store.activeTab === "timeline") && !tutorialProgress.reviewedCaseboard) {
+      setTutorialProgress((prev) => ({ ...prev, reviewedCaseboard: true }));
+    }
+  }, [store.activeTab, tutorialProgress.reviewedCaseboard]);
 
   const handleCheckpointSubmit = async (selectedClueIds: string[], notes: string) => {
     const res = await store.submitCheckpoint(currentEp.episodeNumber, selectedClueIds, notes);
@@ -176,7 +214,10 @@ export default function InvestigationPage({
                 className="bg-transparent text-[#E8C66A] font-bold outline-none cursor-pointer"
               >
                 {THE_LAST_FERRY_CASE.episodes.map((ep) => {
-                  const isUnlocked = store.unlockedEpisodes.includes(ep.id);
+                  const isUnlocked = store.unlockedEpisodes.some((u) => {
+                    const uEp = getEpisodeById(u);
+                    return u === ep.id || u === `ep${ep.episodeNumber}` || uEp?.episodeNumber === ep.episodeNumber;
+                  });
                   return (
                     <option
                       key={ep.id}
@@ -238,17 +279,22 @@ export default function InvestigationPage({
               <span className="hidden xl:inline text-[10px] uppercase tracking-wider font-bold">Manual</span>
             </Link>
 
-            {/* Replay Tutorial Button */}
+            {/* Replay Field Guide Button */}
             <button
               onClick={() => {
                 setIsTutorialActive(true);
+                setTutorialProgress({
+                  inspectedClue: false,
+                  pinnedEvidence: false,
+                  reviewedCaseboard: false,
+                });
                 store.setActiveTab("evidence");
               }}
               className="p-1.5 rounded-xs bg-[#1F1710] text-[#D9C7A6] hover:text-[#E8C66A] hover:bg-[#2D1F17] transition-colors border border-[#C99A3C]/30 text-xs font-mono cursor-pointer flex items-center gap-1"
-              title="Replay Field Tutorial"
+              title="Open Investigator's Field Guide"
             >
               <BookOpen className="w-4 h-4 text-[#C99A3C]" />
-              <span className="hidden xl:inline text-[10px] uppercase tracking-wider font-bold">Tutorial</span>
+              <span className="hidden xl:inline text-[10px] uppercase tracking-wider font-bold">Field Guide</span>
             </button>
 
             {/* Hint Button */}
@@ -293,32 +339,44 @@ export default function InvestigationPage({
           {[
             { id: "briefing", label: "Briefing", icon: Folder },
             { id: "evidence", label: `Evidence (${accessibleClues.length})`, icon: FileText },
-            { id: "witnesses", label: `Witnesses (${currentEp.witnesses.length})`, icon: Users },
+            { id: "witnesses", label: `Witnesses (${allCaseWitnesses.length})`, icon: Users },
             { id: "caseboard", label: "Caseboard", icon: Pin },
             { id: "timeline", label: "Timeline & Links", icon: Clock },
             { id: "chat", label: "Squad Telegraph", icon: Radio },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = store.activeTab === tab.id;
+            const isCaseboardHighlight =
+              tab.id === "caseboard" &&
+              isTutorialActive &&
+              tutorialProgress.inspectedClue &&
+              tutorialProgress.pinnedEvidence &&
+              !tutorialProgress.reviewedCaseboard;
+
             return (
               <button
                 key={tab.id}
-                data-tutorial-id={
-                  tab.id === "caseboard"
-                    ? "tutorial-caseboard-tab"
-                    : tab.id === "chat"
-                    ? "tutorial-chat-tab"
-                    : undefined
-                }
-                onClick={() => store.setActiveTab(tab.id as InvestigationTab)}
+                onClick={() => {
+                  store.setActiveTab(tab.id as InvestigationTab);
+                  if (tab.id === "caseboard" || tab.id === "timeline") {
+                    setTutorialProgress((prev) => ({ ...prev, reviewedCaseboard: true }));
+                  }
+                }}
                 className={`px-3.5 py-1.5 rounded-xs font-serif text-xs uppercase tracking-wider flex items-center gap-2 shrink-0 transition-all cursor-pointer ${
                   isActive
                     ? "bg-[#FAF4E8] text-[#1F1710] font-bold border border-[#C99A3C] shadow-md"
+                    : isCaseboardHighlight
+                    ? "bg-[#854d0e]/50 text-[#fef3c7] font-bold border-2 border-[#E8C66A] ring-2 ring-[#E8C66A] shadow-[0_0_15px_rgba(232,198,106,0.7)] animate-pulse"
                     : "bg-[#18110C] text-[#D9C7A6] hover:bg-[#261A13] border border-[#3D2C20]"
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#8C2D32]" : "text-[#C99A3C]"}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#8C2D32]" : isCaseboardHighlight ? "text-[#E8C66A]" : "text-[#C99A3C]"}`} />
                 <span>{tab.label}</span>
+                {isCaseboardHighlight && (
+                  <span className="font-mono text-[9px] uppercase font-bold text-[#E8C66A] bg-[#1c1917] px-1 py-0.2 rounded-xs border border-[#854d0e] animate-pulse">
+                    Step 3
+                  </span>
+                )}
               </button>
             );
           })}
@@ -334,7 +392,6 @@ export default function InvestigationPage({
             onProceed={() => {
               store.setActiveTab("evidence");
               setIsTutorialActive(true);
-              setHasStartedInvestigationSession(true);
             }}
             isMuted={store.isMuted}
             onToggleMute={store.toggleMute}
@@ -364,13 +421,22 @@ export default function InvestigationPage({
               {accessibleClues.map((clue, idx) => {
                 const isShared = store.sharedEvidenceIds.includes(clue.id);
                 const isPinned = store.caseboardPins.some((p) => p.evidenceId === clue.id);
+                const isStep1Highlight = idx === 0 && isTutorialActive && !tutorialProgress.inspectedClue;
 
                 return (
                   <div
                     key={clue.id}
-                    data-tutorial-id={idx === 0 ? "tutorial-first-clue" : undefined}
-                    onClick={() => store.setSelectedClueId(clue.id)}
-                    className="bg-[#FAF4E8] text-[#1F1710] rounded-sm p-5 border-2 border-[#D4B26F]/60 shadow-lg flex flex-col justify-between cursor-pointer transition-all hover:border-[#8C2D32] hover:scale-[1.01] relative bg-[radial-gradient(#E8DAC2_1px,transparent_1px)] [background-size:14px_14px]"
+                    onClick={() => {
+                      store.setSelectedClueId(clue.id);
+                      if (!tutorialProgress.inspectedClue) {
+                        setTutorialProgress((prev) => ({ ...prev, inspectedClue: true }));
+                      }
+                    }}
+                    className={`bg-[#FAF4E8] text-[#1F1710] rounded-sm p-5 border-2 shadow-lg flex flex-col justify-between cursor-pointer transition-all hover:border-[#8C2D32] hover:scale-[1.01] relative bg-[radial-gradient(#E8DAC2_1px,transparent_1px)] [background-size:14px_14px] ${
+                      isStep1Highlight
+                        ? "border-[#E8C66A] ring-2 ring-[#E8C66A] ring-offset-2 ring-offset-[#0D0906] shadow-[0_0_20px_rgba(232,198,106,0.65)] animate-pulse"
+                        : "border-[#D4B26F]/60"
+                    }`}
                   >
                     <div>
                       {/* Clue Image */}
@@ -386,9 +452,16 @@ export default function InvestigationPage({
                       )}
 
                       <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="font-mono text-[10px] uppercase font-bold text-[#8C2D32] px-1.5 py-0.5 bg-[#F2E5D0] rounded-xs border border-[#C99A3C]/40">
-                          {clue.type}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-[10px] uppercase font-bold text-[#8C2D32] px-1.5 py-0.5 bg-[#F2E5D0] rounded-xs border border-[#C99A3C]/40">
+                            {clue.type}
+                          </span>
+                          {isStep1Highlight && (
+                            <span className="font-mono text-[9px] uppercase font-bold text-[#fef3c7] bg-[#854d0e] px-1.5 py-0.5 rounded-xs flex items-center gap-1 border border-[#E8C66A]/60 shadow-sm">
+                              <Sparkles className="w-2.5 h-2.5 text-[#E8C66A]" /> Step 1: Inspect
+                            </span>
+                          )}
+                        </div>
                         {isShared ? (
                           <span className="font-mono text-[9px] uppercase font-bold text-[#2B4C3F]">
                             Shared with Room
@@ -422,8 +495,8 @@ export default function InvestigationPage({
         {/* TAB 3: WITNESS DEPOSITIONS */}
         {store.activeTab === "witnesses" && (
           <WitnessInterviewScreen
-            witnesses={currentEp.witnesses}
-            dialogues={currentEp.dialogueScripts}
+            witnesses={allCaseWitnesses}
+            dialogues={allCaseDialogues}
             selectedWitnessId={store.selectedWitnessId}
             onSelectWitness={store.setSelectedWitnessId}
             onTagDialogue={(phrase) => {
@@ -439,6 +512,8 @@ export default function InvestigationPage({
             connections={store.caseboardConnections}
             availableClues={accessibleClues}
             onPinEvidence={store.pinEvidence}
+            onUnpinEvidence={store.unpinEvidence}
+            onDeleteConnection={store.deleteConnection}
             onConnectPins={store.connectEvidence}
             onOpenClue={store.setSelectedClueId}
           />
@@ -450,6 +525,7 @@ export default function InvestigationPage({
             <TimelineBoard
               currentOrder={store.timelineOrder}
               onOrderChange={store.orderTimeline}
+              episodeNumber={currentEp.episodeNumber}
             />
             <div className="h-[2px] bg-gradient-to-r from-transparent via-[#C99A3C]/40 to-transparent my-8" />
             <ConnectionGraphBoard
@@ -484,11 +560,18 @@ export default function InvestigationPage({
         <EvidenceViewerModal
           clue={selectedClue}
           onClose={() => store.setSelectedClueId(null)}
-          onShare={(clueId) => store.shareEvidence(clueId)}
+          onShare={(clueId) => {
+            store.shareEvidence(clueId);
+            setTutorialProgress((prev) => ({ ...prev, pinnedEvidence: true }));
+          }}
           onPin={(clueId) => {
-            store.pinEvidence(clueId, 100, 100);
+            const count = store.caseboardPins.length;
+            const x = 80 + (count % 3) * 260;
+            const y = 80 + Math.floor(count / 3) * 220;
+            store.pinEvidence(clueId, x, y);
             store.setSelectedClueId(null);
             store.setActiveTab("caseboard");
+            setTutorialProgress((prev) => ({ ...prev, pinnedEvidence: true, reviewedCaseboard: true }));
           }}
           onAttachToChat={() => {
             store.setSelectedClueId(null);
@@ -496,6 +579,7 @@ export default function InvestigationPage({
           }}
           isShared={store.sharedEvidenceIds.includes(store.selectedClueId)}
           isPinned={store.caseboardPins.some((p) => p.evidenceId === store.selectedClueId)}
+          highlightPin={isTutorialActive && tutorialProgress.inspectedClue && !tutorialProgress.pinnedEvidence}
         />
       )}
 
@@ -583,22 +667,13 @@ export default function InvestigationPage({
         />
       )}
 
-      {/* Interactive First-Time Tutorial Overlay */}
+      {/* Non-Blocking 3-Step Interactive Onboarding Taskbar */}
       <TutorialOverlay
         isOpen={isTutorialActive}
-        isSoloMode={false}
+        progress={tutorialProgress}
         onClose={() => setIsTutorialActive(false)}
         onComplete={() => {
           setIsTutorialActive(false);
-        }}
-        isEvidenceModalOpen={Boolean(store.selectedClueId)}
-        hasPinnedEvidence={store.caseboardPins.length > 0}
-        currentActiveTab={store.activeTab}
-        onNavigateTab={(tab) => store.setActiveTab(tab as InvestigationTab)}
-        onOpenFirstClue={() => {
-          if (accessibleClues.length > 0) {
-            store.setSelectedClueId(accessibleClues[0].id);
-          }
         }}
       />
 

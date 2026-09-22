@@ -14,19 +14,19 @@ export default function RevealCinematic({ onComplete }: RevealCinematicProps) {
   const stages = [
     {
       title: "ACT I: The Monsoon Deception",
-      time: "20:45 HRS &bull; NABADWIP GHAT",
+      time: "22:15 HRS &bull; NABADWIP GHAT NO. 6",
       image: "/cases/the-last-ferry/scene_deck_night.jpg",
-      text: "As MV Banga-Tari set out into the torrential Bhairavi squall, accountant Abir Basu sat tensely in Seat 14 clutching his briefcase. He knew the numbers in the municipal wharf ledger were fabricated by Debashish Pal. But he did not know that his telephone call at 20:55 was monitored.",
+      text: "As MV Sonartori set out into the torrential Bhairavi squall, accountant Abir Basu sat tensely in Seat 14 clutching his briefcase. He knew the numbers in the municipal wharf ledger were fabricated by Debashish Pal. But he did not know that his telephone call at 20:55 was monitored.",
     },
     {
       title: "ACT II: The Inside Sabotage",
-      time: "21:10 HRS &bull; LOWER VESSEL HATCH",
+      time: "22:26 HRS &bull; LOWER ENGINE DECK",
       image: "/cases/the-last-ferry/scene_maintenance_hatch.jpg",
       text: "Deckhand Harun Sheikh used his duplicate wrench to snap the wire seal on the lower maintenance hatch. Claiming an emergency leak in the lower engine hold, Harun lured Basu away from the passenger saloon. Basu's dry umbrella remained upright beside Seat 14—the silent proof that he never stepped outside into the rain.",
     },
     {
-      title: "ACT III: The Blind Spot at Ghat No. 6",
-      time: "21:40 HRS &bull; GANGES BACKWATER",
+      title: "ACT III: The Mid-River Intercept",
+      time: "22:31 HRS &bull; MID-RIVER INTERCEPT",
       image: "/cases/the-last-ferry/scene_ghat_6.jpg",
       text: "While the ferry was docking at Nimtala Ghat, an unlit wooden dinghy emerged from the lower hatch water-level exit. At Ghat No. 6, where the municipal CCTV camera was deliberately disabled, Harun transferred the bound accountant into a covered black Ambassador.",
     },

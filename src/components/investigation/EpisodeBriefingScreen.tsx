@@ -78,7 +78,16 @@ export default function EpisodeBriefingScreen({
             </div>
             <div className="flex items-center gap-2 text-[#3D2C20]">
               <MapPin className="w-4 h-4 text-[#8C2D32]" />
-              <span className="font-mono font-bold">Location:</span> Nabadwip Ghat & MV Banga-Tari
+              <span className="font-mono font-bold">Location:</span>{" "}
+              {episode.episodeNumber === 1
+                ? "Nabadwip Ghat No. 6 & MV Sonartori"
+                : episode.episodeNumber === 2
+                ? "MV Sonartori • Lower Machinery Hold"
+                : episode.episodeNumber === 3
+                ? "Lalbazar CID • Interrogation Wing"
+                : episode.episodeNumber === 4
+                ? "Port Trust Archive & Wharf Records"
+                : "Strand Road Warehouse • Eastern Embankment"}
             </div>
             <div className="flex items-center gap-2 text-[#3D2C20]">
               <Target className="w-4 h-4 text-[#8C2D32]" />

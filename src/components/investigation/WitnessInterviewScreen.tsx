@@ -53,7 +53,7 @@ export default function WitnessInterviewScreen({
     } else {
       setIsPlayingAudio(true);
       const voiceText =
-        activeWitness.id === "rina_basu"
+        activeWitness.id === "rina-basu" || activeWitness.id === "rina_basu"
           ? "Abir called me at 9:15... He said he found an unauthorized diversion in the wharf development account... He said 'If I don't reach Nimtala by ten, give the second duplicate copy to Inspector Banerjee.' Then the line went dead... please find my brother."
           : activeWitness.statementSnippet;
 
@@ -172,7 +172,7 @@ export default function WitnessInterviewScreen({
           </div>
 
           {/* Special Voice Note Waveform Audio Player (Available for Rina Basu or general audio evidence) */}
-          {(activeWitness.id === "rina_basu" || activeWitness.voiceNoteAudio) && (
+          {(activeWitness.id === "rina-basu" || activeWitness.id === "rina_basu" || activeWitness.voiceNoteAudio) && (
             <div className="mb-6 p-4 bg-[#241A13] text-[#FAF4E8] rounded-xs border-2 border-[#C99A3C]/60 shadow-lg">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">

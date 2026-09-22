@@ -25,6 +25,7 @@ export interface FinalAccusationResult {
     accompliceCorrect: boolean;
     decisiveCluesMatched: number;
     totalHintsUsed: number;
+    hintPenalty?: number;
     failedAttempts: number;
     collaborationBonus: number;
   };
@@ -163,8 +164,10 @@ export function evaluateFinalAccusation(
   submission: FinalAccusationSubmission,
   state: {
     totalHintsUsed: number;
+    hintsUsedByTier?: number[];
     failedAttempts: number;
     sharedCount: number;
+    isSoloRoom?: boolean;
   }
 ): FinalAccusationResult {
   const { solution } = THE_LAST_FERRY_CASE;
@@ -185,10 +188,23 @@ export function evaluateFinalAccusation(
   if (!plannerCorrect) baseScore -= 30;
   if (!accompliceCorrect) baseScore -= 20;
   baseScore -= (3 - decisiveCluesMatched) * 10;
-  baseScore -= state.totalHintsUsed * 5;
+
+  // Unified tiered hint penalties: Tier 1 = -2, Tier 2 = -5, Tier 3 = -10
+  let hintPenalty = 0;
+  if (state.hintsUsedByTier && state.hintsUsedByTier.length > 0) {
+    state.hintsUsedByTier.forEach((tier) => {
+      hintPenalty += tier === 1 ? 2 : tier === 2 ? 5 : 10;
+    });
+  } else {
+    hintPenalty = state.totalHintsUsed * 5;
+  }
+  baseScore -= hintPenalty;
   baseScore -= state.failedAttempts * 3;
 
-  const collaborationBonus = Math.min(15, state.sharedCount * 3);
+  // Solo detectives playing without squads receive fair collaboration bonus
+  const collaborationBonus = state.isSoloRoom
+    ? 15
+    : Math.min(15, state.sharedCount * 3);
   const finalIQS = Math.max(20, Math.min(100, baseScore + collaborationBonus));
 
   let rank: "A+" | "A" | "B" | "C" | "D" = "C";
@@ -217,6 +233,7 @@ export function evaluateFinalAccusation(
       accompliceCorrect,
       decisiveCluesMatched,
       totalHintsUsed: state.totalHintsUsed,
+      hintPenalty,
       failedAttempts: state.failedAttempts,
       collaborationBonus,
     },

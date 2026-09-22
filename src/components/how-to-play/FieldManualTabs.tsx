@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Compass,
@@ -13,18 +13,10 @@ import {
   HelpCircle,
   Award,
   Layers,
-  Sparkles,
-  ChevronRight,
-  UserCheck,
   Zap,
-  Printer,
   BookmarkCheck,
   AlertCircle,
-  Eye,
   Share2,
-  FileQuestion,
-  MessageSquare,
-  Flame,
 } from "lucide-react";
 import { soundManager } from "@/lib/audio/soundManager";
 
@@ -32,10 +24,26 @@ interface FieldManualTabsProps {
   searchQuery?: string;
 }
 
-export default function FieldManualTabs({ searchQuery = "" }: FieldManualTabsProps) {
+export default function FieldManualTabs({ searchQuery = "" }: FieldManualTabsProps = {}) {
   const [activeTab, setActiveTab] = useState<
     "getting-started" | "detective-roles" | "investigation-loop" | "team-cooperation" | "scoring-system"
   >("getting-started");
+
+  React.useEffect(() => {
+    if (!searchQuery) return;
+    const q = searchQuery.toLowerCase();
+    if (q.includes("score") || q.includes("iqs") || q.includes("point") || q.includes("hint") || q.includes("rank")) {
+      setActiveTab("scoring-system");
+    } else if (q.includes("team") || q.includes("coop") || q.includes("squad") || q.includes("share") || q.includes("telegraph")) {
+      setActiveTab("team-cooperation");
+    } else if (q.includes("evidence") || q.includes("clue") || q.includes("caseboard") || q.includes("pin") || q.includes("timeline")) {
+      setActiveTab("investigation-loop");
+    } else if (q.includes("detective") || q.includes("role") || q.includes("character") || q.includes("ananya") || q.includes("kabir")) {
+      setActiveTab("detective-roles");
+    } else if (q.includes("start") || q.includes("begin") || q.includes("mode") || q.includes("solo") || q.includes("episode")) {
+      setActiveTab("getting-started");
+    }
+  }, [searchQuery]);
 
   const handleTabChange = (
     tab: "getting-started" | "detective-roles" | "investigation-loop" | "team-cooperation" | "scoring-system"
@@ -76,9 +84,6 @@ export default function FieldManualTabs({ searchQuery = "" }: FieldManualTabsPro
       icon: Award,
     },
   ];
-
-  // Helper to highlight search query
-  const query = searchQuery.trim().toLowerCase();
 
   return (
     <div className="w-full max-w-5xl mx-auto my-6 font-serif">

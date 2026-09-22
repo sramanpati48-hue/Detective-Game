@@ -28,6 +28,7 @@ export default function FinalAccusationScreen({
   const [method, setMethod] = useState("");
   const [selectedClues, setSelectedClues] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const suspects = THE_LAST_FERRY_CASE.cast.filter((c) => c.role === "Suspect" || c.role === "Witness");
 
@@ -49,6 +50,7 @@ export default function FinalAccusationScreen({
     if (!plannerId || !accompliceId || selectedClues.length < 2 || isSubmitting) return;
 
     setIsSubmitting(true);
+    setSubmissionError(null);
     soundManager.playRubberStamp(true);
     const res = await onSubmitAccusation({
       plannerId,
@@ -60,6 +62,12 @@ export default function FinalAccusationScreen({
 
     if (res?.result?.passed) {
       onShowCinematic();
+    } else {
+      soundManager.playRubberStamp(false);
+      setSubmissionError(
+        res?.result?.narrativeReview ||
+          "Warrant request rejected by the Chief Judicial Magistrate. The evidence does not conclusively tie both named conspirators to the scene. Review the decisive exhibits."
+      );
     }
   };
 
@@ -88,6 +96,19 @@ export default function FinalAccusationScreen({
               Formal submission to Chief Judicial Magistrate, Lalbazar. Once warrants are executed, the investigation concludes. Ensure your deductive chain is unassailable.
             </span>
           </div>
+
+          {/* Rejection Alert Banner */}
+          {submissionError && (
+            <div className="p-4 bg-[#F8D7DA] border-2 border-[#8C2D32] rounded-xs text-xs font-serif text-[#58151C] shadow-md flex items-start gap-3 animate-shake">
+              <AlertTriangle className="w-5 h-5 text-[#8C2D32] shrink-0 mt-0.5" />
+              <div>
+                <strong className="block font-mono text-[11px] uppercase tracking-wider text-[#8C2D32] mb-1">
+                  Warrant Application Denied by Magistrate
+                </strong>
+                <p className="leading-relaxed">{submissionError}</p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Mastermind & Accomplice Pickers */}
@@ -132,7 +153,7 @@ export default function FinalAccusationScreen({
                   ))}
                 </select>
                 <p className="text-[11px] font-mono text-[#665040] mt-1.5">
-                  The person with physical access aboard MV Banga-Tari.
+                  The person with physical access aboard MV Sonartori.
                 </p>
               </div>
             </div>

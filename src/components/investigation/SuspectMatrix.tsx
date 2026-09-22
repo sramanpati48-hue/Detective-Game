@@ -12,11 +12,13 @@ interface SuspectMatrixProps {
 export default function SuspectMatrix({ onInterviewSuspect }: SuspectMatrixProps) {
   // Local state for investigator deduction tags
   const [suspectTags, setSuspectTags] = useState<Record<string, string>>({
-    debashish_pal: "Prime Suspect",
-    harun_sheikh: "Alibi Questioned",
-    rina_basu: "Corroborated Witness",
-    tuli_ghosh: "Neutral Observer",
-    captain_prakash_nair: "Neutral Observer",
+    "debashish-pal": "Prime Suspect",
+    "harun-sheikh": "Alibi Questioned",
+    "rina-basu": "Corroborated Witness",
+    "tuli-ghosh": "Neutral Observer",
+    "captain-prakash-nair": "Neutral Observer",
+    "abir-basu": "Victim / Missing",
+    "inspector-banerjee": "CID Investigator",
   });
 
   const handleTagChange = (id: string, tag: string) => {

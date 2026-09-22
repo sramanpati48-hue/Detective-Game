@@ -95,12 +95,12 @@ export default function TheLastFerryCasePage() {
               <div className="w-full aspect-[16/10] relative mb-6 border-4 border-white shadow-lg transform -rotate-1 hover:rotate-0 transition-transform bg-[#120D09] overflow-hidden">
                 <Image
                   src="/cases/the-last-ferry/scene_deck_night.jpg"
-                  alt="MV Banga-Tari Ferry at Night"
+                  alt="MV Sonartori Ferry at Night"
                   fill
                   className="object-cover contrast-[1.1] sepia-[0.2]"
                 />
                 <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/70 text-[#E8C66A] font-mono text-[10px] tracking-wider uppercase">
-                  EXHIBIT PHOTO: MV BANGA-TARI
+                  EXHIBIT PHOTO: MV SONARTORI
                 </div>
               </div>
 
@@ -256,7 +256,7 @@ export default function TheLastFerryCasePage() {
                   </button>
                 </form>
 
-                <Link href="/room" className="block text-center">
+                <Link href="/room/create" className="block text-center">
                   <span className="font-mono text-xs text-[#D9C7A6]/80 hover:text-[#E8C66A] underline">
                     Create New Room in Room Hub &rarr;
                   </span>

@@ -1,16 +1,19 @@
 "use client";
 import React, { useState, useRef } from "react";
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { ClueItem } from "@/lib/data/cases/the-last-ferry";
 import { CaseboardPin, CaseboardConnection } from "@/app/api/room/[roomCode]/investigation/route";
 import { soundManager } from "@/lib/audio/soundManager";
-import { Link2, Plus, Info } from "lucide-react";
+import { Link2, Plus, Info, Trash2, Move } from "lucide-react";
 
 interface SharedCaseboardProps {
   pins: CaseboardPin[];
   connections: CaseboardConnection[];
   availableClues: ClueItem[];
   onPinEvidence: (evidenceId: string, x: number, y: number, notes?: string) => void;
+  onUnpinEvidence?: (evidenceId: string) => void;
+  onDeleteConnection?: (connectionId: string) => void;
   onConnectPins: (
     sourcePinId: string,
     targetPinId: string,
@@ -26,6 +29,8 @@ export default function SharedCaseboard({
   connections,
   availableClues,
   onPinEvidence,
+  onUnpinEvidence,
+  onDeleteConnection,
   onConnectPins,
   onOpenClue,
 }: SharedCaseboardProps) {
@@ -102,27 +107,23 @@ export default function SharedCaseboard({
     }
   };
 
+  const calculatedHeight = Math.max(620, ...pins.map((p) => p.y + 320));
+
   return (
     <div className="w-full max-w-6xl mx-auto my-4 flex flex-col gap-4 font-serif">
-      {/* Board Controls Toolbar */}
-      <div className="bg-[#241A13] text-[#FAF4E8] p-4 rounded-xs border border-[#C99A3C]/40 shadow-lg flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full bg-[#E8C66A] shadow-[0_0_8px_#E8C66A]" />
-          <h3 className="font-serif text-lg font-bold text-[#FAF4E8]">
-            Shared Caseboard & Red String Deductions
-          </h3>
-          <span className="font-mono text-xs text-[#D9C7A6]/70 uppercase tracking-widest hidden sm:inline">
-            ({pins.length} Pinned &bull; {connections.length} Links)
-          </span>
+      {/* Header Bar */}
+      <div className="bg-[#241A13] text-[#FAF4E8] p-5 rounded-xs border border-[#C99A3C]/40 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div className="font-mono text-xs text-[#E8C66A] uppercase tracking-widest mb-1">
+            Lalbazar Forensic Corkboard
+          </div>
+          <h2 className="font-serif text-2xl font-bold">Deduction & Evidence Map</h2>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={() => {
-              soundManager.playClick();
-              setIsAddingPin(!isAddingPin);
-            }}
-            className="px-3 py-1.5 bg-[#8C2D32] hover:bg-[#A3343A] text-[#FAF4E8] rounded-xs font-serif text-xs uppercase tracking-wider font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md"
+            onClick={() => setIsAddingPin(!isAddingPin)}
+            className="px-3.5 py-1.5 bg-[#8C2D32] hover:bg-[#A3343A] text-[#FAF4E8] rounded-xs font-serif text-xs uppercase tracking-wider font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
           >
             <Plus className="w-4 h-4" />
             <span>Pin Evidence</span>
@@ -202,8 +203,9 @@ export default function SharedCaseboard({
       {/* Main Corkboard Area */}
       <div
         ref={boardRef}
-        className="relative w-full min-h-[580px] bg-[#3B291A] border-8 border-[#26170D] rounded-sm shadow-[inset_0_0_80px_rgba(0,0,0,0.8)] overflow-hidden p-6 select-none"
+        className="relative w-full bg-[#3B291A] border-8 border-[#26170D] rounded-sm shadow-[inset_0_0_80px_rgba(0,0,0,0.8)] overflow-y-auto p-6 select-none transition-all duration-300"
         style={{
+          minHeight: `${calculatedHeight}px`,
           backgroundImage: `
             radial-gradient(circle at 50% 50%, rgba(201, 154, 60, 0.08) 0%, transparent 60%),
             url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="cork"><feTurbulence type="fractalNoise" baseFrequency="0.6" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="matrix" values="0.45 0 0 0 0.18  0 0.35 0 0 0.12  0 0 0.25 0 0.08  0 0 0 1 0"/></filter><rect width="100%" height="100%" filter="url(%23cork)" opacity="0.3"/></svg>')
@@ -218,18 +220,38 @@ export default function SharedCaseboard({
             </filter>
           </defs>
           {connections.map((conn) => {
-            const p1 = pins.find((p) => p.id === conn.sourcePinId);
-            const p2 = pins.find((p) => p.id === conn.targetPinId);
+            const p1 = pins.find(
+              (p) => p.id === conn.sourcePinId || p.evidenceId === conn.sourceEvidenceId || p.evidenceId === conn.sourcePinId
+            );
+            const p2 = pins.find(
+              (p) => p.id === conn.targetPinId || p.evidenceId === conn.targetEvidenceId || p.evidenceId === conn.targetPinId
+            );
             if (!p1 || !p2) return null;
 
             // Pin center offsets
-            const x1 = p1.x + 110;
+            const x1 = p1.x + 120;
             const y1 = p1.y + 20;
-            const x2 = p2.x + 110;
+            const x2 = p2.x + 120;
             const y2 = p2.y + 20;
 
             return (
-              <g key={conn.id}>
+              <g key={conn.id} className="pointer-events-auto cursor-pointer group">
+                <line
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke="transparent"
+                  strokeWidth="16"
+                  onClick={() => {
+                    if (onDeleteConnection) {
+                      soundManager.playPaperSlide();
+                      onDeleteConnection(conn.id);
+                    }
+                  }}
+                >
+                  <title>Click to cut connection thread</title>
+                </line>
                 <line
                   x1={x1}
                   y1={y1}
@@ -239,6 +261,7 @@ export default function SharedCaseboard({
                   strokeWidth="2.5"
                   strokeDasharray={conn.isCanonVerified ? "none" : "6,4"}
                   filter="url(#stringShadow)"
+                  className="group-hover:stroke-[#FF4444] transition-colors"
                 />
               </g>
             );
@@ -259,41 +282,70 @@ export default function SharedCaseboard({
         )}
 
         {/* Pinned Cards */}
-        {pins.map((pin, idx) => {
+        {pins.map((pin) => {
           const clue = clueMap.get(pin.evidenceId);
           const isSelected = selectedPinId === pin.id;
 
           return (
-            <div
+            <motion.div
               key={pin.id}
+              drag
+              dragMomentum={false}
+              dragConstraints={boardRef}
+              onDragEnd={(_e, info) => {
+                if (Math.abs(info.offset.x) > 5 || Math.abs(info.offset.y) > 5) {
+                  const newX = Math.max(20, Math.round(pin.x + info.offset.x));
+                  const newY = Math.max(20, Math.round(pin.y + info.offset.y));
+                  onPinEvidence(pin.evidenceId, newX, newY, pin.notes);
+                }
+              }}
               onClick={() => handlePinClick(pin)}
               style={{
                 left: `${pin.x}px`,
                 top: `${pin.y}px`,
-                transform: `rotate(${(idx % 5) - 2}deg)`,
               }}
-              className={`absolute z-20 w-60 bg-[#FAF4E8] text-[#1F1710] p-3 rounded-xs shadow-[0_12px_24px_rgba(0,0,0,0.6)] border transition-all cursor-pointer group ${
+              className={`absolute z-20 w-60 bg-[#FAF4E8] text-[#1F1710] p-3 rounded-xs shadow-[0_12px_24px_rgba(0,0,0,0.6)] border transition-all cursor-move group select-none ${
                 isSelected
                   ? "ring-4 ring-[#8C2D32] border-[#8C2D32] scale-105"
                   : "border-[#C99A3C]/60 hover:scale-102 hover:shadow-[0_16px_32px_rgba(0,0,0,0.8)]"
               }`}
             >
               {/* Brass Pin Head */}
-              <div className="absolute -top-3 left-1/2 -ml-3 w-6 h-6 rounded-full bg-gradient-to-tr from-[#946A1B] via-[#E8C66A] to-[#FFEB99] border border-[#54380B] shadow-[0_3px_6px_rgba(0,0,0,0.8)] flex items-center justify-center z-30">
+              <div className="absolute -top-3 left-1/2 -ml-3 w-6 h-6 rounded-full bg-gradient-to-tr from-[#946A1B] via-[#E8C66A] to-[#FFEB99] border border-[#54380B] shadow-[0_3px_6px_rgba(0,0,0,0.8)] flex items-center justify-center z-30 pointer-events-none">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#3D2C20]" />
               </div>
 
-              {/* Pin Author Badge */}
+              {/* Pin Author Badge & Unpin Action */}
               <div className="flex items-center justify-between text-[10px] font-mono text-[#665040] mb-1.5 pt-1">
-                <span className="uppercase text-[#8C2D32] font-bold">
-                  {clue?.type || "EVIDENCE"}
-                </span>
-                <span className="truncate max-w-[110px]">by {pin.sharedByName}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="uppercase text-[#8C2D32] font-bold">
+                    {clue?.type || "EVIDENCE"}
+                  </span>
+                  <span className="text-[#C99A3C]/80" title="Drag to reposition card">
+                    <Move className="w-2.5 h-2.5 inline" />
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="truncate max-w-[90px]">by {pin.sharedByName}</span>
+                  {onUnpinEvidence && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        soundManager.playPaperSlide();
+                        onUnpinEvidence(pin.evidenceId);
+                      }}
+                      title="Unpin from caseboard"
+                      className="text-[#8C2D32]/60 hover:text-[#8C2D32] p-0.5 rounded transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Thumbnail if available */}
               {clue?.image && (
-                <div className="relative w-full h-24 mb-2 rounded-xs overflow-hidden border border-[#2D2117] bg-[#120D09]">
+                <div className="relative w-full h-24 mb-2 rounded-xs overflow-hidden border border-[#2D2117] bg-[#120D09] pointer-events-none">
                   <Image
                     src={clue.image}
                     alt={clue.title}
@@ -304,10 +356,10 @@ export default function SharedCaseboard({
               )}
 
               {/* Title & Excerpt */}
-              <h4 className="font-serif font-bold text-xs text-[#1F1710] leading-snug line-clamp-2 mb-1">
+              <h4 className="font-serif font-bold text-xs text-[#1F1710] leading-snug line-clamp-2 mb-1 pointer-events-none">
                 {clue?.title || pin.evidenceId}
               </h4>
-              <p className="font-serif text-[11px] text-[#4A3728] line-clamp-2 leading-relaxed">
+              <p className="font-serif text-[11px] text-[#4A3728] line-clamp-2 leading-relaxed pointer-events-none">
                 {pin.notes || clue?.summary}
               </p>
 
@@ -318,7 +370,7 @@ export default function SharedCaseboard({
                     e.stopPropagation();
                     onOpenClue(pin.evidenceId);
                   }}
-                  className="text-[10px] font-mono text-[#8C2D32] hover:underline uppercase"
+                  className="text-[10px] font-mono text-[#8C2D32] hover:underline uppercase cursor-pointer"
                 >
                   Examine Dossier
                 </button>
@@ -328,7 +380,7 @@ export default function SharedCaseboard({
                   </span>
                 )}
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>

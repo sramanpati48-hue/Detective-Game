@@ -7,10 +7,6 @@ import {
   Printer,
   Search,
   BookOpen,
-  Sparkles,
-  Shield,
-  Compass,
-  Briefcase,
   ChevronRight,
 } from "lucide-react";
 import FieldManualTabs from "@/components/how-to-play/FieldManualTabs";

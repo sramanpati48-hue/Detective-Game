@@ -288,6 +288,23 @@ export const THE_LAST_FERRY_CASE: CanonicalCase = {
           { speaker: "Inspector S. Banerjee", speakerRole: "Lalbazar CID", text: "Staged? That implies premeditation. If he didn't drown from the deck, how did he leave this vessel mid-river?", highlightablePhrase: "how did he leave this vessel mid-river" }
         ]
       },
+      connectionPairs: [
+        {
+          sourceId: "c1_seat_14_photo",
+          targetId: "c1_umbrella_intact",
+          reason: "The dry, folded umbrella beneath Seat 14 directly contradicts the theory of a violent storm surge washing Abir overboard."
+        },
+        {
+          sourceId: "c1_seat_14_photo",
+          targetId: "c1_abir_profile",
+          reason: "Abir's documented severe hydrophobia contradicts the assumption that he would voluntarily lean over the wet deck railing."
+        },
+        {
+          sourceId: "c1_ticket_timestamp",
+          targetId: "c1_police_report",
+          reason: "Boarding ticket timestamp (10:11 PM) confirms Abir boarded just 4 minutes prior to cast-off, leaving no window for an ashore altercation."
+        }
+      ],
       checkpoint: {
         id: "chk-ep1",
         title: "Checkpoint 1: Deconstruct the Accident Theory",
@@ -382,6 +399,23 @@ export const THE_LAST_FERRY_CASE: CanonicalCase = {
           { speaker: "Harun Sheikh", speakerRole: "Mechanic", text: "I wear size 9s. So do half the dock hands in Nabadwip. That doesn't mean I opened that hatch for anyone.", highlightablePhrase: "That doesn't mean I opened that hatch for anyone" }
         ]
       },
+      connectionPairs: [
+        {
+          sourceId: "c2_broken_hatch_seal",
+          targetId: "c2_wet_rope_fibres",
+          reason: "The snipped waterline hatch seal and foreign braided nylon fibres prove a secondary craft pulled alongside Hatch 4B."
+        },
+        {
+          sourceId: "c2_boot_print",
+          targetId: "c2_engine_corridor_photo",
+          reason: "Bata industrial boot prints near the hatch match crew footwear with authorized access to the machinery corridor."
+        },
+        {
+          sourceId: "c2_red_clay_smear",
+          targetId: "c2_broken_hatch_seal",
+          reason: "Red alluvial clay on the hatch latch points to a transfer destination at the Eastern Embankment brick kilns."
+        }
+      ],
       checkpoint: {
         id: "chk-ep2",
         title: "Checkpoint 2: Identify the Waterline Transfer Route",
@@ -548,6 +582,18 @@ export const THE_LAST_FERRY_CASE: CanonicalCase = {
           canonOrder: 8
         }
       ],
+      connectionPairs: [
+        {
+          sourceId: "c3_cctv_log",
+          targetId: "c3_ferry_log",
+          reason: "The 11-minute CCTV Camera 3 outage (10:26-10:37 PM) coincides exactly with the vessel speed slowdown omitted from the Captain's logbook."
+        },
+        {
+          sourceId: "c3_rina_voicenote",
+          targetId: "c3_cctv_log",
+          reason: "Abir's distress call identifying Debashish's stalkers corroborates the coordinated timing of the CCTV blackout."
+        }
+      ],
       checkpoint: {
         id: "chk-ep3",
         title: "Checkpoint 3: Reconstruct the 11-Minute Blind Spot",
@@ -700,6 +746,18 @@ export const THE_LAST_FERRY_CASE: CanonicalCase = {
           { speaker: "Detective", speakerRole: "Investigator", text: "The evidence is watertight, Inspector. The accident theory was a deliberate fabrication." }
         ]
       },
+      connectionPairs: [
+        {
+          sourceId: "c4_torn_ledger_pages",
+          targetId: "c2_red_clay_smear",
+          reason: "The red alluvial clay found on Hatch 4B matches the Eastern Embankment brick kiln warehouse where Pal stashed the ledgers."
+        },
+        {
+          sourceId: "c4_service_key_register",
+          targetId: "c4_torn_ledger_pages",
+          reason: "Debashish Pal's financial embezzlement provided the criminal motive to bribe Harun Sheikh to check out Key 4B."
+        }
+      ],
       checkpoint: {
         id: "chk-ep5",
         title: "Checkpoint 5: The Final Accusation",

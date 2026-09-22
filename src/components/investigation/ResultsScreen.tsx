@@ -83,7 +83,7 @@ export default function ResultsScreen({
               Investigation Quality Score (IQS) Scoring Matrix
             </h4>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 font-mono text-xs">
               <div className="p-3 bg-[#F2E5D0] border border-[#C99A3C]/50 rounded-xs">
                 <span className="text-[#665040] block text-[10px] uppercase">Mastermind:</span>
                 <span className="font-bold text-[#2B4C3F]">
@@ -109,6 +109,24 @@ export default function ResultsScreen({
                 <span className="text-[#665040] block text-[10px] uppercase">Collaboration:</span>
                 <span className="font-bold text-[#2B4C3F]">
                   +{breakdown.collaborationBonus} Pts Bonus
+                </span>
+              </div>
+
+              <div className="p-3 bg-[#F2E5D0] border border-[#C99A3C]/50 rounded-xs">
+                <span className="text-[#665040] block text-[10px] uppercase">Hint Penalties:</span>
+                <span className={`font-bold ${(breakdown.hintPenalty ?? breakdown.totalHintsUsed * 5) > 0 ? "text-[#8C2D32]" : "text-[#2B4C3F]"}`}>
+                  {(breakdown.hintPenalty ?? breakdown.totalHintsUsed * 5) > 0
+                    ? `-${breakdown.hintPenalty ?? breakdown.totalHintsUsed * 5} Pts (${breakdown.totalHintsUsed} used)`
+                    : "0 Pts (None Used)"}
+                </span>
+              </div>
+
+              <div className="p-3 bg-[#F2E5D0] border border-[#C99A3C]/50 rounded-xs">
+                <span className="text-[#665040] block text-[10px] uppercase">Checkpoint Retries:</span>
+                <span className={`font-bold ${breakdown.failedAttempts > 0 ? "text-[#8C2D32]" : "text-[#2B4C3F]"}`}>
+                  {breakdown.failedAttempts > 0
+                    ? `-${breakdown.failedAttempts * 3} Pts (${breakdown.failedAttempts} failed)`
+                    : "0 Pts (Flawless)"}
                 </span>
               </div>
             </div>

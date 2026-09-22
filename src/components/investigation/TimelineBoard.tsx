@@ -8,9 +8,14 @@ import { Clock, ArrowUp, ArrowDown, AlertTriangle, CheckCircle2 } from "lucide-r
 interface TimelineBoardProps {
   currentOrder: string[];
   onOrderChange: (orderedIds: string[]) => void;
+  episodeNumber?: number;
 }
 
-export default function TimelineBoard({ currentOrder, onOrderChange }: TimelineBoardProps) {
+export default function TimelineBoard({
+  currentOrder,
+  onOrderChange,
+  episodeNumber = 1,
+}: TimelineBoardProps) {
   // Collect all timeline events from case
   const allEvents: TimelineEvent[] = [];
   THE_LAST_FERRY_CASE.episodes.forEach((ep) => {
@@ -18,19 +23,22 @@ export default function TimelineBoard({ currentOrder, onOrderChange }: TimelineB
   });
 
   // Default initial order if empty: scrambled or by episode
-  const initialIds = currentOrder.length === allEvents.length && currentOrder.length > 0
-    ? currentOrder
-    : allEvents.map((e) => e.id);
+  const initialIds =
+    currentOrder.length === allEvents.length && currentOrder.length > 0
+      ? currentOrder
+      : allEvents.map((e) => e.id);
 
   const [orderedIds, setOrderedIds] = useState<string[]>(initialIds);
   const [contradictions, setContradictions] = useState<string[]>([]);
   const [isCanon, setIsCanon] = useState(false);
 
+  const isEarlyEpisode = episodeNumber < 3;
+
   useEffect(() => {
     if (currentOrder.length > 0 && currentOrder.join(",") !== orderedIds.join(",")) {
       setOrderedIds(currentOrder);
     }
-  }, [currentOrder]);
+  }, [currentOrder, orderedIds]);
 
   // Re-check accuracy whenever order changes
   useEffect(() => {
@@ -94,22 +102,37 @@ export default function TimelineBoard({ currentOrder, onOrderChange }: TimelineB
         </div>
       </div>
 
-      {/* Contradiction Alert Box */}
-      {contradictions.length > 0 && (
-        <div className="p-4 bg-[#F5E6E6] border-l-4 border-[#8C2D32] rounded-xs text-[#521B1E] font-serif shadow-sm">
-          <div className="flex items-center gap-2 mb-2 font-mono text-xs font-bold uppercase tracking-wider text-[#8C2D32]">
-            <AlertTriangle className="w-4 h-4" />
-            <span>Forensic Contradictions Discovered ({contradictions.length})</span>
+      {/* Early Episode Advisory Banner */}
+      {isEarlyEpisode && (
+        <div className="p-3.5 bg-[#18110C] border border-[#C99A3C]/40 rounded-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-[#D9C7A6]">
+          <div className="flex items-center gap-2.5">
+            <Clock className="w-4 h-4 text-[#E8C66A] shrink-0" />
+            <span>
+              <strong>Preliminary Reconstruction (Episode {episodeNumber}):</strong> Reorder the crossing events into their true chronological sequence to expose timeline gaps and alibi contradictions.
+            </span>
           </div>
-          <ul className="space-y-1 text-xs">
-            {contradictions.map((c, i) => (
-              <li key={i} className="list-disc list-inside">
-                {c}
-              </li>
-            ))}
-          </ul>
+          <span className="shrink-0 font-mono text-[10px] text-[#E8C66A] uppercase px-2 py-0.5 bg-[#241A13] rounded-xs border border-[#C99A3C]/30">
+            Active Dossier
+          </span>
         </div>
       )}
+
+      {/* Contradiction Alert Box */}
+          {contradictions.length > 0 && (
+            <div className="p-4 bg-[#F5E6E6] border-l-4 border-[#8C2D32] rounded-xs text-[#521B1E] font-serif shadow-sm">
+              <div className="flex items-center gap-2 mb-2 font-mono text-xs font-bold uppercase tracking-wider text-[#8C2D32]">
+                <AlertTriangle className="w-4 h-4" />
+                <span>Forensic Contradictions Discovered ({contradictions.length})</span>
+              </div>
+              <ul className="space-y-1 text-xs">
+                {contradictions.map((c, i) => (
+                  <li key={i} className="list-disc list-inside">
+                    {c}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
       {/* Reorderable Timeline Slots */}
       <div className="space-y-3">

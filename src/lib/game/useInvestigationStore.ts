@@ -101,6 +101,7 @@ interface InvestigationStore {
   // Game Engine Server Actions
   shareEvidence: (evidenceId: string) => Promise<void>;
   pinEvidence: (evidenceId: string, x: number, y: number, notes?: string) => Promise<void>;
+  unpinEvidence: (evidenceId: string) => Promise<void>;
   connectEvidence: (
     sourcePinId: string,
     targetPinId: string,
@@ -108,6 +109,7 @@ interface InvestigationStore {
     targetEvidenceId: string,
     deductionNotes?: string
   ) => Promise<void>;
+  deleteConnection: (connectionId: string) => Promise<void>;
   orderTimeline: (orderedEventIds: string[]) => Promise<void>;
   sendChat: (text: string, attachedEvidenceId?: string) => Promise<void>;
   submitCheckpoint: (
@@ -294,6 +296,57 @@ export const useInvestigationStore = create<InvestigationStore>((set, get) => ({
       await get().pollServer();
     } catch (e) {
       console.error("Failed to pin evidence:", e);
+    }
+  },
+
+  unpinEvidence: async (evidenceId) => {
+    const { roomCode, playerId, detectiveName } = get();
+    soundManager.playPaperSlide();
+    set((state) => ({
+      caseboardPins: state.caseboardPins.filter((p) => p.evidenceId !== evidenceId),
+      caseboardConnections: state.caseboardConnections.filter(
+        (c) => c.sourceEvidenceId !== evidenceId && c.targetEvidenceId !== evidenceId
+      ),
+    }));
+
+    try {
+      await fetch(`/api/room/${encodeURIComponent(roomCode)}/investigation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "unpin_evidence",
+          playerId,
+          detectiveName,
+          payload: { evidenceId },
+        }),
+      });
+      await get().pollServer();
+    } catch (e) {
+      console.error("Failed to unpin evidence:", e);
+    }
+  },
+
+  deleteConnection: async (connectionId) => {
+    const { roomCode, playerId, detectiveName } = get();
+    soundManager.playPaperSlide();
+    set((state) => ({
+      caseboardConnections: state.caseboardConnections.filter((c) => c.id !== connectionId),
+    }));
+
+    try {
+      await fetch(`/api/room/${encodeURIComponent(roomCode)}/investigation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "delete_connection",
+          playerId,
+          detectiveName,
+          payload: { connectionId },
+        }),
+      });
+      await get().pollServer();
+    } catch (e) {
+      console.error("Failed to delete connection:", e);
     }
   },
 
@@ -491,7 +544,7 @@ export const useInvestigationStore = create<InvestigationStore>((set, get) => ({
     Object.values(checkpointStatus).forEach((chk) => {
       score -= Math.max(0, chk.attempts - 1) * 4;
       chk.hintsUsed.forEach((tier) => {
-        score -= tier === 1 ? 2 : tier === 2 ? 5 : 8;
+        score -= tier === 1 ? 2 : tier === 2 ? 5 : 10;
       });
     });
     score += Math.min(15, sharedEvidenceIds.length * 2);
