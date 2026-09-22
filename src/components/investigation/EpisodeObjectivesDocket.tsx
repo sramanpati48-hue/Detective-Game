@@ -17,6 +17,7 @@ import {
   Award,
   Minimize2,
   Maximize2,
+  Lock,
 } from "lucide-react";
 import { EpisodeObjective } from "@/lib/game/episodeObjectives";
 import { soundManager } from "@/lib/audio/soundManager";
@@ -29,6 +30,7 @@ interface EpisodeObjectivesDocketProps {
   onNavigateTab: (tab: "evidence" | "witnesses" | "caseboard" | "timeline") => void;
   onOpenCheckpointModal: () => void;
   onOpenClue?: (clueId: string) => void;
+  onSelectWitness?: (witnessId: string) => void;
   activeTab?: string;
 }
 
@@ -40,6 +42,7 @@ export default function EpisodeObjectivesDocket({
   onNavigateTab,
   onOpenCheckpointModal,
   onOpenClue,
+  onSelectWitness,
   activeTab = "evidence",
 }: EpisodeObjectivesDocketProps) {
   const [isMinimized, setIsMinimized] = useState(activeTab === "briefing");
@@ -75,6 +78,10 @@ export default function EpisodeObjectivesDocket({
 
     if (obj.recommendedClueId && onOpenClue && obj.navTargetTab === "evidence") {
       onOpenClue(obj.recommendedClueId);
+    }
+
+    if (obj.recommendedWitnessId && onSelectWitness && obj.navTargetTab === "witnesses") {
+      onSelectWitness(obj.recommendedWitnessId);
     }
   };
 
@@ -213,71 +220,95 @@ export default function EpisodeObjectivesDocket({
                       className={`p-2.5 rounded-xs border transition-all ${
                         obj.isCompleted
                           ? "bg-[#140E0A]/70 border-[#3D291C] text-[#FAF4E8]/60"
-                          : isCurrent
-                          ? "bg-[#2A1B12] border-[#C99A3C] text-[#FAF4E8] shadow-md ring-1 ring-[#C99A3C]/40"
-                          : "bg-[#1C120C]/80 border-[#3D291C] text-[#FAF4E8]/80 hover:border-[#66462E]"
+                          : obj.isCurrent
+                          ? "bg-[#281810] border-2 border-[#E8C66A] text-[#FAF4E8] shadow-[0_0_18px_rgba(232,198,106,0.35)] ring-1 ring-[#E8C66A]/60"
+                          : "bg-[#120B08]/50 border-[#2D1F17]/80 text-[#FAF4E8]/40 opacity-60"
                       }`}
                     >
                       <div className="flex items-start gap-2.5">
-                        {/* Checkbox Icon */}
+                        {/* Status Icon */}
                         <div className="mt-0.5 shrink-0">
                           {obj.isCompleted ? (
                             <CheckCircle2 className="w-4 h-4 text-[#8CE5B0]" />
+                          ) : obj.isCurrent ? (
+                            <div className="w-4 h-4 rounded-full bg-[#702428] border border-[#E8C66A] flex items-center justify-center text-[#E8C66A] animate-pulse">
+                              <Target className="w-2.5 h-2.5" />
+                            </div>
                           ) : (
-                            <Circle
-                              className={`w-4 h-4 ${
-                                isCurrent ? "text-[#E8C66A] animate-pulse" : "text-[#704F34]"
-                              }`}
-                            />
+                            <Lock className="w-3.5 h-3.5 text-[#6B5342]" />
                           )}
                         </div>
 
                         {/* Title & Guidance */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                          <div className="flex items-center justify-between gap-1 mb-0.5 flex-wrap">
                             <span
                               className={`font-serif text-xs font-bold leading-tight ${
                                 obj.isCompleted
                                   ? "line-through text-[#D9C7A6]/50"
-                                  : isCurrent
-                                  ? "text-[#E8C66A]"
-                                  : "text-[#FAF4E8]"
+                                  : obj.isCurrent
+                                  ? "text-[#FAF4E8]"
+                                  : "text-[#D9C7A6]/50"
                               }`}
                             >
                               {obj.stepNumber}. {obj.title}
                             </span>
 
-                            {isCurrent && (
-                              <span className="font-mono text-[8.5px] uppercase font-bold text-[#E8C66A] bg-[#702428] px-1.5 py-0.2 rounded-xs border border-[#C99A3C]/50 shrink-0">
-                                Current
+                            {obj.isCompleted && (
+                              <span className="font-mono text-[8px] uppercase font-bold text-[#8CE5B0] bg-[#142A1E] px-1.5 py-0.2 rounded-xs border border-[#3FB950]/50 shrink-0">
+                                Cleared ✓
+                              </span>
+                            )}
+
+                            {obj.isCurrent && (
+                              <span className="font-mono text-[8.5px] uppercase font-bold text-[#FAF4E8] bg-[#702428] px-2 py-0.5 rounded-xs border border-[#E8C66A] flex items-center gap-1 shadow-xs animate-pulse shrink-0">
+                                <Sparkles className="w-2.5 h-2.5 text-[#E8C66A]" /> Active Goal
+                              </span>
+                            )}
+
+                            {obj.isLocked && (
+                              <span className="font-mono text-[8px] uppercase font-semibold text-[#8C745E] bg-[#1A120D] px-1.5 py-0.2 rounded-xs border border-[#3D291C] shrink-0">
+                                Locked
                               </span>
                             )}
                           </div>
 
-                          <p className="font-serif text-[11px] text-[#D9C7A6]/80 leading-snug line-clamp-2">
+                          <p
+                            className={`font-serif text-[11px] leading-snug line-clamp-2 ${
+                              obj.isCompleted
+                                ? "line-through text-[#D9C7A6]/40"
+                                : obj.isCurrent
+                                ? "text-[#FAF4E8]/90 font-medium"
+                                : "text-[#D9C7A6]/40"
+                            }`}
+                          >
                             {obj.instruction}
                           </p>
 
                           {/* Action Button & Status Counter */}
                           <div className="mt-2 pt-1.5 border-t border-[#3D291C]/60 flex items-center justify-between text-[10px] font-mono">
-                            <span
-                              className={`${
-                                obj.isCompleted ? "text-[#8CE5B0] font-bold" : "text-[#C99A3C]"
-                              }`}
-                            >
-                              {obj.isCompleted
-                                ? "Cleared ✓"
-                                : `${obj.currentCount}/${obj.targetCount} Completed`}
-                            </span>
+                            {obj.isCompleted ? (
+                              <span className="text-[#8CE5B0] font-bold">
+                                Step {obj.stepNumber} Cleared ✓
+                              </span>
+                            ) : obj.isCurrent ? (
+                              <>
+                                <span className="text-[#E8C66A] font-bold">
+                                  {obj.currentCount}/{obj.targetCount} Completed
+                                </span>
 
-                            {!obj.isCompleted && (
-                              <button
-                                onClick={() => handleActionClick(obj)}
-                                className="inline-flex items-center gap-1 text-[#E8C66A] hover:text-[#FFF] hover:underline cursor-pointer uppercase font-bold tracking-wider"
-                              >
-                                <span>{obj.actionLabel}</span>
-                                <ArrowRight className="w-3 h-3" />
-                              </button>
+                                <button
+                                  onClick={() => handleActionClick(obj)}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-[#702428] hover:bg-[#8C2D32] text-[#FAF4E8] border border-[#E8C66A] font-bold font-mono text-[10px] uppercase tracking-wider shadow-sm hover:scale-102 transition-transform cursor-pointer"
+                                >
+                                  <span>{obj.actionLabel}</span>
+                                  <ArrowRight className="w-3 h-3 text-[#E8C66A]" />
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-[#6B5342] flex items-center gap-1">
+                                <Lock className="w-2.5 h-2.5" /> Unlocks after Step {obj.stepNumber - 1}
+                              </span>
                             )}
                           </div>
                         </div>

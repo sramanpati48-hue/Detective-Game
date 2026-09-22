@@ -89,6 +89,7 @@ export default function InvestigationPage({
   // Goal-Based Objective Tracking for Field Docket
   const [inspectedClueIds, setInspectedClueIds] = useState<string[]>([]);
   const [reviewedWitnessIds, setReviewedWitnessIds] = useState<string[]>([]);
+  const [visitedCaseboard, setVisitedCaseboard] = useState(false);
   const [reviewedTimeline, setReviewedTimeline] = useState(false);
 
   // Track inspected clues automatically
@@ -109,6 +110,13 @@ export default function InvestigationPage({
     }
   }, [store.selectedWitnessId]);
 
+  // Track caseboard visit automatically
+  useEffect(() => {
+    if (store.activeTab === "caseboard") {
+      setVisitedCaseboard(true);
+    }
+  }, [store.activeTab]);
+
   // Track reviewed timeline automatically
   useEffect(() => {
     if (store.activeTab === "timeline") {
@@ -122,10 +130,12 @@ export default function InvestigationPage({
     completedCount: objectivesCompletedCount,
     allCompleted: allObjectivesCompleted,
     currentObjective,
+    activeStepNumber,
   } = getEpisodeObjectives(currentEp.episodeNumber, {
     inspectedClueIds,
     reviewedWitnessIds,
     pinnedClueCount: store.caseboardPins.length,
+    visitedCaseboard,
     reviewedTimeline,
     checkpointPassed: currentCheckpointStatus.passed,
   });
@@ -421,6 +431,7 @@ export default function InvestigationPage({
             const Icon = tab.icon;
             const isActive = store.activeTab === tab.id;
             const isObjectiveTarget = currentObjective?.category === tab.category && !isActive;
+            const isObjectiveActiveTab = currentObjective?.category === tab.category && isActive;
             const isCaseboardHighlight =
               tab.id === "caseboard" &&
               isTutorialActive &&
@@ -433,15 +444,19 @@ export default function InvestigationPage({
                 key={tab.id}
                 onClick={() => {
                   store.setActiveTab(tab.id as InvestigationTab);
+                  if (tab.id === "caseboard") setVisitedCaseboard(true);
+                  if (tab.id === "timeline") setReviewedTimeline(true);
                   if (tab.id === "caseboard" || tab.id === "timeline") {
                     setTutorialProgress((prev) => ({ ...prev, reviewedCaseboard: true }));
                   }
                 }}
                 className={`px-3.5 py-1.5 rounded-xs font-serif text-xs uppercase tracking-wider flex items-center gap-2 shrink-0 transition-all cursor-pointer ${
                   isActive
-                    ? "bg-[#FAF4E8] text-[#1F1710] font-bold border border-[#C99A3C] shadow-md"
+                    ? isObjectiveActiveTab
+                      ? "bg-[#FAF4E8] text-[#1F1710] font-bold border-2 border-[#E8C66A] ring-1 ring-[#E8C66A] shadow-[0_0_12px_rgba(232,198,106,0.5)]"
+                      : "bg-[#FAF4E8] text-[#1F1710] font-bold border border-[#C99A3C] shadow-md"
                     : isObjectiveTarget
-                    ? "bg-[#2A1B12] text-[#E8C66A] font-bold border-2 border-[#C99A3C] shadow-[0_0_12px_rgba(201,154,60,0.4)] animate-pulse"
+                    ? "bg-[#281810] text-[#E8C66A] font-bold border-2 border-[#E8C66A] shadow-[0_0_16px_rgba(232,198,106,0.55)] ring-1 ring-[#E8C66A]/60 animate-pulse"
                     : isCaseboardHighlight
                     ? "bg-[#854d0e]/50 text-[#fef3c7] font-bold border-2 border-[#E8C66A] ring-2 ring-[#E8C66A] shadow-[0_0_15px_rgba(232,198,106,0.7)] animate-pulse"
                     : "bg-[#18110C] text-[#D9C7A6] hover:bg-[#261A13] border border-[#3D2C20]"
@@ -449,9 +464,14 @@ export default function InvestigationPage({
               >
                 <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#8C2D32]" : isObjectiveTarget || isCaseboardHighlight ? "text-[#E8C66A]" : "text-[#C99A3C]"}`} />
                 <span>{tab.label}</span>
-                {isObjectiveTarget && (
-                  <span className="font-mono text-[9px] uppercase font-bold text-[#E8C66A] bg-[#702428] px-1 py-0.2 rounded-xs border border-[#C99A3C]">
-                    Next Goal
+                {isObjectiveTarget && currentObjective && (
+                  <span className="font-mono text-[9px] uppercase font-bold text-[#FAF4E8] bg-[#702428] px-1.5 py-0.5 rounded-xs border border-[#E8C66A] flex items-center gap-1 shadow-xs">
+                    <Sparkles className="w-2 h-2 text-[#E8C66A]" /> Step {currentObjective.stepNumber} Goal
+                  </span>
+                )}
+                {isObjectiveActiveTab && currentObjective && (
+                  <span className="font-mono text-[8.5px] uppercase font-bold text-[#8C2D32] bg-[#F2E5D0] px-1 rounded-xs border border-[#C99A3C]/50">
+                    Step {currentObjective.stepNumber} Focus
                   </span>
                 )}
                 {isCaseboardHighlight && !isObjectiveTarget && (
@@ -565,11 +585,16 @@ export default function InvestigationPage({
                             {clue.type}
                           </span>
                           {isGoalExhibit && (
-                            <span className="font-mono text-[9px] uppercase font-bold text-[#702428] bg-[#F2E5D0] px-1.5 py-0.5 rounded-xs flex items-center gap-1 border border-[#8C2D32]/50 shadow-xs animate-pulse">
-                              <Target className="w-2.5 h-2.5 text-[#8C2D32]" /> Goal Target
+                            <span className="font-mono text-[9px] uppercase font-bold text-[#FAF4E8] bg-[#702428] px-1.5 py-0.5 rounded-xs flex items-center gap-1 border border-[#E8C66A] shadow-xs animate-pulse">
+                              <Target className="w-2.5 h-2.5 text-[#E8C66A]" /> Step 1: Examine Exhibit
                             </span>
                           )}
-                          {isStep1Highlight && !isGoalExhibit && (
+                          {isInspected && !isGoalExhibit && (
+                            <span className="font-mono text-[9px] uppercase font-bold text-[#2B4C3F] bg-[#E0F2E9] px-1.5 py-0.5 rounded-xs border border-[#3FB950]/40">
+                              ✓ Examined
+                            </span>
+                          )}
+                          {isStep1Highlight && !isGoalExhibit && !isInspected && (
                             <span className="font-mono text-[9px] uppercase font-bold text-[#fef3c7] bg-[#854d0e] px-1.5 py-0.5 rounded-xs flex items-center gap-1 border border-[#E8C66A]/60 shadow-sm">
                               <Sparkles className="w-2.5 h-2.5 text-[#E8C66A]" /> Step 1: Inspect
                             </span>
@@ -620,6 +645,11 @@ export default function InvestigationPage({
             onTagDialogue={(phrase) => {
               store.sendChat(`Statement noted: "${phrase}"`);
             }}
+            highlightWitnessId={
+              currentObjective?.category === "witness"
+                ? currentObjective.recommendedWitnessId || "captain-prakash-nair"
+                : undefined
+            }
           />
         )}
 
@@ -689,6 +719,7 @@ export default function InvestigationPage({
             store.pinEvidence(clueId, x, y);
             store.setSelectedClueId(null);
             store.setActiveTab("caseboard");
+            setVisitedCaseboard(true);
             setTutorialProgress((prev) => ({ ...prev, pinnedEvidence: true, reviewedCaseboard: true }));
           }}
           onAttachToChat={() => {
@@ -697,7 +728,10 @@ export default function InvestigationPage({
           }}
           isShared={store.sharedEvidenceIds.includes(store.selectedClueId)}
           isPinned={store.caseboardPins.some((p) => p.evidenceId === store.selectedClueId)}
-          highlightPin={isTutorialActive && tutorialProgress.inspectedClue && !tutorialProgress.pinnedEvidence}
+          highlightPin={
+            currentObjective?.category === "caseboard" ||
+            (isTutorialActive && tutorialProgress.inspectedClue && !tutorialProgress.pinnedEvidence)
+          }
         />
       )}
 
@@ -804,6 +838,7 @@ export default function InvestigationPage({
         onNavigateTab={(tab) => store.setActiveTab(tab)}
         onOpenCheckpointModal={() => store.setCheckpointModalOpen(true)}
         onOpenClue={(clueId) => store.setSelectedClueId(clueId)}
+        onSelectWitness={(witnessId) => store.setSelectedWitnessId(witnessId)}
         activeTab={store.activeTab}
       />
 

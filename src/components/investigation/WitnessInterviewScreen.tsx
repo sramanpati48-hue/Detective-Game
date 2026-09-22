@@ -11,6 +11,7 @@ interface WitnessInterviewScreenProps {
   selectedWitnessId: string | null;
   onSelectWitness: (witnessId: string) => void;
   onTagDialogue?: (phrase: string) => void;
+  highlightWitnessId?: string;
 }
 
 export default function WitnessInterviewScreen({
@@ -19,6 +20,7 @@ export default function WitnessInterviewScreen({
   selectedWitnessId,
   onSelectWitness,
   onTagDialogue,
+  highlightWitnessId,
 }: WitnessInterviewScreenProps) {
   const activeWitness =
     witnesses.find((w) => w.id === selectedWitnessId) || witnesses[0] || THE_LAST_FERRY_CASE.cast[0];
@@ -93,6 +95,7 @@ export default function WitnessInterviewScreen({
         <div className="space-y-2.5">
           {witnesses.map((witness) => {
             const isSelected = witness.id === activeWitness.id;
+            const isGoalWitness = highlightWitnessId && witness.id === highlightWitnessId;
             return (
               <button
                 key={witness.id}
@@ -103,6 +106,8 @@ export default function WitnessInterviewScreen({
                 className={`w-full text-left p-3 rounded-xs border transition-all flex items-center gap-3 cursor-pointer ${
                   isSelected
                     ? "bg-[#FAF4E8] text-[#1F1710] border-[#8C2D32] shadow-md -translate-r-1"
+                    : isGoalWitness
+                    ? "bg-[#281810] text-[#FAF4E8] border-2 border-[#E8C66A] shadow-[0_0_15px_rgba(232,198,106,0.4)] ring-1 ring-[#E8C66A]/60 animate-pulse"
                     : "bg-[#18110C]/80 text-[#D9C7A6] border-[#3D2C20] hover:bg-[#251A13]"
                 }`}
               >
@@ -118,17 +123,24 @@ export default function WitnessInterviewScreen({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <h4 className="font-bold text-sm truncate font-serif">{witness.name}</h4>
-                    <span
-                      className={`text-[10px] font-mono px-1.5 py-0.5 rounded-xs uppercase tracking-wider ${
-                        witness.role === "Suspect"
-                          ? "bg-[#702428] text-[#FAF4E8]"
-                          : witness.role === "Witness"
-                          ? "bg-[#2B4C3F] text-[#E0F2E9]"
-                          : "bg-[#3D2C20] text-[#D9C7A6]"
-                      }`}
-                    >
-                      {witness.role}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {isGoalWitness && (
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-xs uppercase tracking-wider bg-[#702428] text-[#FAF4E8] border border-[#E8C66A] font-bold">
+                          Goal Target
+                        </span>
+                      )}
+                      <span
+                        className={`text-[10px] font-mono px-1.5 py-0.5 rounded-xs uppercase tracking-wider ${
+                          witness.role === "Suspect"
+                            ? "bg-[#702428] text-[#FAF4E8]"
+                            : witness.role === "Witness"
+                            ? "bg-[#2B4C3F] text-[#E0F2E9]"
+                            : "bg-[#3D2C20] text-[#D9C7A6]"
+                        }`}
+                      >
+                        {witness.role}
+                      </span>
+                    </div>
                   </div>
                   <p className="text-xs opacity-75 truncate font-sans">{witness.function}</p>
                 </div>

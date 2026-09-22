@@ -14,6 +14,8 @@ export interface EpisodeObjective {
   targetCount: number;
   currentCount: number;
   isCompleted: boolean;
+  isCurrent: boolean;
+  isLocked: boolean;
   navTargetTab?: "briefing" | "evidence" | "witnesses" | "caseboard" | "timeline" | "chat";
   opensModal?: "checkpoint" | "hint";
   recommendedClueId?: string;
@@ -54,7 +56,7 @@ export const EPISODE_1_OBJECTIVES_DEFINITION = [
     shortLabel: "Pin to Caseboard",
     category: "caseboard" as const,
     description: "Organize your deductions on the shared corkboard. Publishing key findings ensures your team can link facts and string red yarn connections.",
-    instruction: "Open any exhibit and click 'Pin to Journal / Board' to place it onto the communal corkboard.",
+    instruction: "Pin an exhibit from your dossier and open the Caseboard to review team deductions.",
     actionLabel: "Open Caseboard",
     targetCount: 1,
     navTargetTab: "caseboard" as const,
@@ -89,6 +91,7 @@ export interface ObjectiveTrackingState {
   inspectedClueIds: string[];
   reviewedWitnessIds: string[];
   pinnedClueCount: number;
+  visitedCaseboard: boolean;
   reviewedTimeline: boolean;
   checkpointPassed: boolean;
 }
@@ -96,92 +99,170 @@ export interface ObjectiveTrackingState {
 export function getEpisodeObjectives(
   episodeNumber: number,
   tracking: ObjectiveTrackingState
-): { objectives: EpisodeObjective[]; completedCount: number; allCompleted: boolean; currentObjective: EpisodeObjective | null } {
+): {
+  objectives: EpisodeObjective[];
+  completedCount: number;
+  allCompleted: boolean;
+  currentObjective: EpisodeObjective | null;
+  activeStepNumber: number;
+} {
   if (episodeNumber === 1) {
-    const objectives: EpisodeObjective[] = [
-      {
-        ...EPISODE_1_OBJECTIVES_DEFINITION[0],
-        currentCount: Math.min(tracking.inspectedClueIds.length, 2),
-        isCompleted: tracking.inspectedClueIds.length >= 2,
-      },
-      {
-        ...EPISODE_1_OBJECTIVES_DEFINITION[1],
-        currentCount: Math.min(tracking.reviewedWitnessIds.length, 1),
-        isCompleted: tracking.reviewedWitnessIds.length >= 1,
-      },
-      {
-        ...EPISODE_1_OBJECTIVES_DEFINITION[2],
-        currentCount: Math.min(tracking.pinnedClueCount, 1),
-        isCompleted: tracking.pinnedClueCount >= 1,
-      },
-      {
-        ...EPISODE_1_OBJECTIVES_DEFINITION[3],
-        currentCount: tracking.reviewedTimeline ? 1 : 0,
-        isCompleted: tracking.reviewedTimeline,
-      },
-      {
-        ...EPISODE_1_OBJECTIVES_DEFINITION[4],
-        currentCount: tracking.checkpointPassed ? 1 : 0,
-        isCompleted: tracking.checkpointPassed,
-      },
-    ];
+    // 1. Strict Sequential Progression Validation: Step N requires Step N-1 to be completed!
+    // Step 1: Forensics (Inspect at least 2 exhibits)
+    const step1Done = tracking.inspectedClueIds.length >= 2;
+
+    // Step 2: Witnesses (requires Step 1 done AND at least 1 witness interrogated)
+    const step2Done = step1Done && tracking.reviewedWitnessIds.length >= 1;
+
+    // Step 3: Caseboard (requires Step 2 done AND evidence pinned + caseboard visited)
+    const step3Done = step2Done && (tracking.pinnedClueCount >= 1 && tracking.visitedCaseboard);
+
+    // Step 4: Timeline (requires Step 3 done AND timeline reviewed)
+    const step4Done = step3Done && tracking.reviewedTimeline;
+
+    // Step 5: Checkpoint (requires Step 4 done AND checkpoint submitted & passed)
+    const step5Done = step4Done && tracking.checkpointPassed;
+
+    // 2. Identify active step number (1 through 5, or 6 when all are cleared)
+    let activeStepNumber = 1;
+    if (step1Done) activeStepNumber = 2;
+    if (step2Done) activeStepNumber = 3;
+    if (step3Done) activeStepNumber = 4;
+    if (step4Done) activeStepNumber = 5;
+    if (step5Done) activeStepNumber = 6;
+
+    const completedMap: Record<number, boolean> = {
+      1: step1Done,
+      2: step2Done,
+      3: step3Done,
+      4: step4Done,
+      5: step5Done,
+    };
+
+    const objectives: EpisodeObjective[] = EPISODE_1_OBJECTIVES_DEFINITION.map((def) => {
+      const stepNum = def.stepNumber;
+      const isCompleted = completedMap[stepNum] || false;
+      const isCurrent = activeStepNumber === stepNum;
+      const isLocked = stepNum > activeStepNumber;
+
+      let currentCount = 0;
+      if (isCompleted) {
+        currentCount = def.targetCount;
+      } else if (isCurrent) {
+        if (stepNum === 1) {
+          currentCount = Math.min(tracking.inspectedClueIds.length, def.targetCount);
+        } else if (stepNum === 2) {
+          currentCount = Math.min(tracking.reviewedWitnessIds.length, def.targetCount);
+        } else if (stepNum === 3) {
+          currentCount = tracking.pinnedClueCount >= 1 && tracking.visitedCaseboard ? 1 : 0;
+        } else if (stepNum === 4) {
+          currentCount = tracking.reviewedTimeline ? 1 : 0;
+        } else if (stepNum === 5) {
+          currentCount = tracking.checkpointPassed ? 1 : 0;
+        }
+      } else {
+        // Locked steps show 0
+        currentCount = 0;
+      }
+
+      return {
+        ...def,
+        currentCount,
+        isCompleted,
+        isCurrent,
+        isLocked,
+      };
+    });
 
     const completedCount = objectives.filter((o) => o.isCompleted).length;
     const allCompleted = completedCount === objectives.length;
-    const currentObjective = objectives.find((o) => !o.isCompleted) || null;
+    const currentObjective = objectives.find((o) => o.isCurrent) || null;
 
-    return { objectives, completedCount, allCompleted, currentObjective };
+    return { objectives, completedCount, allCompleted, currentObjective, activeStepNumber };
   }
 
   // Fallback for subsequent episodes (Episodes 2 - 5)
-  const defaultObjectives: EpisodeObjective[] = [
+  const defaultDefs = [
     {
       id: `ep${episodeNumber}-obj-clues`,
       stepNumber: 1,
       title: "Analyze Chapter Forensic Exhibits",
       shortLabel: "Analyze Exhibits",
-      category: "forensic",
+      category: "forensic" as const,
       description: "Examine newly unlocked chapter evidence to uncover concealed leads.",
       instruction: "Inspect the evidence exhibits unlocked for this episode.",
       actionLabel: "View Evidence",
       targetCount: 2,
-      currentCount: Math.min(tracking.inspectedClueIds.length, 2),
-      isCompleted: tracking.inspectedClueIds.length >= 2,
-      navTargetTab: "evidence",
+      navTargetTab: "evidence" as const,
     },
     {
       id: `ep${episodeNumber}-obj-caseboard`,
       stepNumber: 2,
       title: "Update Caseboard Connections",
       shortLabel: "Update Caseboard",
-      category: "caseboard",
+      category: "caseboard" as const,
       description: "Link new clues on the shared caseboard to construct emerging suspect theories.",
       instruction: "Pin or connect evidence on the communal caseboard.",
       actionLabel: "Open Caseboard",
       targetCount: 1,
-      currentCount: Math.min(tracking.pinnedClueCount, 1),
-      isCompleted: tracking.pinnedClueCount >= 1,
-      navTargetTab: "caseboard",
+      navTargetTab: "caseboard" as const,
     },
     {
       id: `ep${episodeNumber}-obj-checkpoint`,
       stepNumber: 3,
       title: "Submit Chapter Checkpoint",
       shortLabel: "Submit Checkpoint",
-      category: "checkpoint",
+      category: "checkpoint" as const,
       description: "Present your hypothesis to clear this chapter and unlock the next narrative layer.",
       instruction: "Complete and submit the chapter checkpoint review.",
       actionLabel: "Review Checkpoint",
       targetCount: 1,
-      currentCount: tracking.checkpointPassed ? 1 : 0,
-      isCompleted: tracking.checkpointPassed,
-      opensModal: "checkpoint",
+      opensModal: "checkpoint" as const,
     },
   ];
 
+  const step1Done = tracking.inspectedClueIds.length >= 2;
+  const step2Done = step1Done && tracking.pinnedClueCount >= 1;
+  const step3Done = step2Done && tracking.checkpointPassed;
+
+  let activeStepNumber = 1;
+  if (step1Done) activeStepNumber = 2;
+  if (step2Done) activeStepNumber = 3;
+  if (step3Done) activeStepNumber = 4;
+
+  const completedMap: Record<number, boolean> = {
+    1: step1Done,
+    2: step2Done,
+    3: step3Done,
+  };
+
+  const defaultObjectives: EpisodeObjective[] = defaultDefs.map((def) => {
+    const stepNum = def.stepNumber;
+    const isCompleted = completedMap[stepNum] || false;
+    const isCurrent = activeStepNumber === stepNum;
+    const isLocked = stepNum > activeStepNumber;
+
+    let currentCount = 0;
+    if (isCompleted) {
+      currentCount = def.targetCount;
+    } else if (isCurrent) {
+      if (stepNum === 1) currentCount = Math.min(tracking.inspectedClueIds.length, def.targetCount);
+      else if (stepNum === 2) currentCount = Math.min(tracking.pinnedClueCount, def.targetCount);
+      else if (stepNum === 3) currentCount = tracking.checkpointPassed ? 1 : 0;
+    }
+
+    return {
+      ...def,
+      currentCount,
+      isCompleted,
+      isCurrent,
+      isLocked,
+    };
+  });
+
   const completedCount = defaultObjectives.filter((o) => o.isCompleted).length;
   const allCompleted = completedCount === defaultObjectives.length;
-  const currentObjective = defaultObjectives.find((o) => !o.isCompleted) || null;
+  const currentObjective = defaultObjectives.find((o) => o.isCurrent) || null;
 
-  return { objectives: defaultObjectives, completedCount, allCompleted, currentObjective };
+  return { objectives: defaultObjectives, completedCount, allCompleted, currentObjective, activeStepNumber };
 }
