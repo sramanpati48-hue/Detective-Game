@@ -5,7 +5,8 @@ import { motion } from "framer-motion";
 import { ClueItem } from "@/lib/data/cases/the-last-ferry";
 import { CaseboardPin, CaseboardConnection } from "@/app/api/room/[roomCode]/investigation/route";
 import { soundManager } from "@/lib/audio/soundManager";
-import { Link2, Plus, Info, Trash2, Move } from "lucide-react";
+import { Link2, Plus, Info, Trash2, Move, Target, ArrowRight } from "lucide-react";
+import { EpisodeObjective } from "@/lib/game/episodeObjectives";
 
 interface SharedCaseboardProps {
   pins: CaseboardPin[];
@@ -22,6 +23,8 @@ interface SharedCaseboardProps {
     notes?: string
   ) => void;
   onOpenClue: (clueId: string) => void;
+  currentObjective?: EpisodeObjective | null;
+  onNavigateTab?: (tab: "briefing" | "evidence" | "witnesses" | "caseboard" | "timeline" | "chat") => void;
 }
 
 export default function SharedCaseboard({
@@ -33,6 +36,8 @@ export default function SharedCaseboard({
   onDeleteConnection,
   onConnectPins,
   onOpenClue,
+  currentObjective,
+  onNavigateTab,
 }: SharedCaseboardProps) {
   const [selectedPinId, setSelectedPinId] = useState<string | null>(null);
   const [connectionNote, setConnectionNote] = useState("");
@@ -130,6 +135,30 @@ export default function SharedCaseboard({
           </button>
         </div>
       </div>
+
+      {/* Active Goal 1 Hint Banner if user visits Caseboard during Step 1 */}
+      {currentObjective?.stepNumber === 1 && !currentObjective.isCompleted && (
+        <div className="bg-[#241710] border-2 border-[#E8C66A] p-3.5 rounded-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[#FAF4E8] text-xs font-serif shadow-lg animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-full bg-[#702428] border border-[#E8C66A] flex items-center justify-center text-[#E8C66A] shrink-0">
+              <Target className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <span className="font-bold text-[#E8C66A]">Active Docket Goal:</span>{" "}
+              <span>Examine at least 2 exhibit cards in your Forensic File ({currentObjective.currentCount}/{currentObjective.targetCount} Completed).</span>
+            </div>
+          </div>
+          {onNavigateTab && (
+            <button
+              onClick={() => onNavigateTab("evidence")}
+              className="px-3 py-1.5 bg-[#702428] hover:bg-[#8C2D32] text-[#FAF4E8] border border-[#E8C66A] rounded-xs font-mono text-[10px] uppercase font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-sm"
+            >
+              <span>View Evidence Dossier</span>
+              <ArrowRight className="w-3 h-3 text-[#E8C66A]" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Add Pin Drawer */}
       {isAddingPin && (
@@ -300,6 +329,10 @@ export default function SharedCaseboard({
                 }
               }}
               onClick={() => handlePinClick(pin)}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                onOpenClue(pin.evidenceId);
+              }}
               style={{
                 left: `${pin.x}px`,
                 top: `${pin.y}px`,
@@ -345,7 +378,14 @@ export default function SharedCaseboard({
 
               {/* Thumbnail if available */}
               {clue?.image && (
-                <div className="relative w-full h-24 mb-2 rounded-xs overflow-hidden border border-[#2D2117] bg-[#120D09] pointer-events-none">
+                <div 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenClue(pin.evidenceId);
+                  }}
+                  title="Click to examine full exhibit dossier"
+                  className="relative w-full h-24 mb-2 rounded-xs overflow-hidden border border-[#2D2117] bg-[#120D09] cursor-pointer hover:opacity-90 transition-opacity"
+                >
                   <Image
                     src={clue.image}
                     alt={clue.title}
@@ -371,9 +411,10 @@ export default function SharedCaseboard({
                     e.stopPropagation();
                     onOpenClue(pin.evidenceId);
                   }}
-                  className="text-[10px] font-mono text-[#8C2D32] hover:underline uppercase cursor-pointer"
+                  className="px-2.5 py-1 bg-[#8C2D32]/10 hover:bg-[#8C2D32] text-[#8C2D32] hover:text-[#FAF4E8] rounded-xs border border-[#8C2D32]/40 font-mono text-[10px] uppercase font-bold transition-all flex items-center gap-1 cursor-pointer"
                 >
-                  Examine Dossier
+                  <span>Examine Dossier</span>
+                  <span className="text-xs">&rarr;</span>
                 </button>
                 {isSelected && (
                   <span className="text-[10px] font-mono text-[#8C2D32] font-bold animate-pulse">

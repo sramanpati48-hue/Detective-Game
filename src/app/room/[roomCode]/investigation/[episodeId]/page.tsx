@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, use } from "react";
+import React, { useEffect, useState, use, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -92,6 +92,49 @@ export default function InvestigationPage({
   const [visitedCaseboard, setVisitedCaseboard] = useState(false);
   const [reviewedTimeline, setReviewedTimeline] = useState(false);
 
+  // Restore persisted objective progress on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = localStorage.getItem(`docket_progress_${roomCode}_${episodeId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed.inspectedClueIds)) setInspectedClueIds(parsed.inspectedClueIds);
+        if (Array.isArray(parsed.reviewedWitnessIds)) setReviewedWitnessIds(parsed.reviewedWitnessIds);
+        if (typeof parsed.visitedCaseboard === "boolean") setVisitedCaseboard(parsed.visitedCaseboard);
+        if (typeof parsed.reviewedTimeline === "boolean") setReviewedTimeline(parsed.reviewedTimeline);
+      }
+    } catch (e) {
+      console.error("Failed to restore objective tracking progress", e);
+    }
+  }, [roomCode, episodeId]);
+
+  // Persist objective progress to localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(
+        `docket_progress_${roomCode}_${episodeId}`,
+        JSON.stringify({
+          inspectedClueIds,
+          reviewedWitnessIds,
+          visitedCaseboard,
+          reviewedTimeline,
+        })
+      );
+    } catch (e) {
+      console.error("Failed to save objective tracking progress", e);
+    }
+  }, [roomCode, episodeId, inspectedClueIds, reviewedWitnessIds, visitedCaseboard, reviewedTimeline]);
+
+  // Effective inspected clues: anything inspected in modal, pinned to caseboard, or shared to room
+  const effectiveInspectedClueIds = useMemo(() => {
+    const set = new Set(inspectedClueIds);
+    store.caseboardPins.forEach((p) => set.add(p.evidenceId));
+    store.sharedEvidenceIds.forEach((id) => set.add(id));
+    return Array.from(set);
+  }, [inspectedClueIds, store.caseboardPins, store.sharedEvidenceIds]);
+
   // Track inspected clues automatically
   useEffect(() => {
     if (store.selectedClueId) {
@@ -101,14 +144,23 @@ export default function InvestigationPage({
     }
   }, [store.selectedClueId]);
 
-  // Track reviewed witnesses automatically
+  // Track reviewed witnesses automatically (including visiting witnesses tab)
   useEffect(() => {
-    if (store.selectedWitnessId) {
+    if (store.activeTab === "witnesses") {
+      const activeWitnessId =
+        store.selectedWitnessId ||
+        allCaseWitnesses[0]?.id;
+      if (activeWitnessId) {
+        setReviewedWitnessIds((prev) =>
+          prev.includes(activeWitnessId) ? prev : [...prev, activeWitnessId]
+        );
+      }
+    } else if (store.selectedWitnessId) {
       setReviewedWitnessIds((prev) =>
         prev.includes(store.selectedWitnessId!) ? prev : [...prev, store.selectedWitnessId!]
       );
     }
-  }, [store.selectedWitnessId]);
+  }, [store.activeTab, store.selectedWitnessId, allCaseWitnesses]);
 
   // Track caseboard visit automatically
   useEffect(() => {
@@ -132,12 +184,13 @@ export default function InvestigationPage({
     currentObjective,
     activeStepNumber,
   } = getEpisodeObjectives(currentEp.episodeNumber, {
-    inspectedClueIds,
+    inspectedClueIds: effectiveInspectedClueIds,
     reviewedWitnessIds,
     pinnedClueCount: store.caseboardPins.length,
     visitedCaseboard,
     reviewedTimeline,
     checkpointPassed: currentCheckpointStatus.passed,
+    availableClueIds: accessibleClues.map((c) => c.id),
   });
 
   // Initialize Store with roomCode
@@ -432,12 +485,6 @@ export default function InvestigationPage({
             const isActive = store.activeTab === tab.id;
             const isObjectiveTarget = currentObjective?.category === tab.category && !isActive;
             const isObjectiveActiveTab = currentObjective?.category === tab.category && isActive;
-            const isCaseboardHighlight =
-              tab.id === "caseboard" &&
-              isTutorialActive &&
-              tutorialProgress.inspectedClue &&
-              tutorialProgress.pinnedEvidence &&
-              !tutorialProgress.reviewedCaseboard;
 
             return (
               <button
@@ -457,12 +504,10 @@ export default function InvestigationPage({
                       : "bg-[#FAF4E8] text-[#1F1710] font-bold border border-[#C99A3C] shadow-md"
                     : isObjectiveTarget
                     ? "bg-[#281810] text-[#E8C66A] font-bold border-2 border-[#E8C66A] shadow-[0_0_16px_rgba(232,198,106,0.55)] ring-1 ring-[#E8C66A]/60 animate-pulse"
-                    : isCaseboardHighlight
-                    ? "bg-[#854d0e]/50 text-[#fef3c7] font-bold border-2 border-[#E8C66A] ring-2 ring-[#E8C66A] shadow-[0_0_15px_rgba(232,198,106,0.7)] animate-pulse"
                     : "bg-[#18110C] text-[#D9C7A6] hover:bg-[#261A13] border border-[#3D2C20]"
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#8C2D32]" : isObjectiveTarget || isCaseboardHighlight ? "text-[#E8C66A]" : "text-[#C99A3C]"}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#8C2D32]" : isObjectiveTarget ? "text-[#E8C66A]" : "text-[#C99A3C]"}`} />
                 <span>{tab.label}</span>
                 {isObjectiveTarget && currentObjective && (
                   <span className="font-mono text-[9px] uppercase font-bold text-[#FAF4E8] bg-[#702428] px-1.5 py-0.5 rounded-xs border border-[#E8C66A] flex items-center gap-1 shadow-xs">
@@ -472,11 +517,6 @@ export default function InvestigationPage({
                 {isObjectiveActiveTab && currentObjective && (
                   <span className="font-mono text-[8.5px] uppercase font-bold text-[#8C2D32] bg-[#F2E5D0] px-1 rounded-xs border border-[#C99A3C]/50">
                     Step {currentObjective.stepNumber} Focus
-                  </span>
-                )}
-                {isCaseboardHighlight && !isObjectiveTarget && (
-                  <span className="font-mono text-[9px] uppercase font-bold text-[#E8C66A] bg-[#1c1917] px-1 py-0.2 rounded-xs border border-[#854d0e] animate-pulse">
-                    Step 3
                   </span>
                 )}
               </button>
@@ -512,7 +552,7 @@ export default function InvestigationPage({
               </div>
               <div className="flex items-center gap-3">
                 <span className="font-mono text-xs text-[#D9C7A6]/70">
-                  {myClues.length} in Your Inventory &bull; {store.sharedEvidenceIds.length} Shared &bull; {inspectedClueIds.length}/{accessibleClues.length} Examined
+                  {myClues.length} in Your Inventory &bull; {store.sharedEvidenceIds.length} Shared &bull; {effectiveInspectedClueIds.length}/{accessibleClues.length} Examined
                 </span>
               </div>
             </div>
@@ -522,7 +562,7 @@ export default function InvestigationPage({
               {accessibleClues.map((clue, idx) => {
                 const isShared = store.sharedEvidenceIds.includes(clue.id);
                 const isPinned = store.caseboardPins.some((p) => p.evidenceId === clue.id);
-                const isInspected = inspectedClueIds.includes(clue.id);
+                const isInspected = effectiveInspectedClueIds.includes(clue.id);
                 const isGoalExhibit =
                   currentObjective?.category === "forensic" &&
                   (!isInspected || currentObjective.recommendedClueId === clue.id);
@@ -659,11 +699,16 @@ export default function InvestigationPage({
             pins={store.caseboardPins}
             connections={store.caseboardConnections}
             availableClues={accessibleClues}
-            onPinEvidence={store.pinEvidence}
+            onPinEvidence={(clueId, x, y, notes) => {
+              store.pinEvidence(clueId, x, y, notes);
+              setInspectedClueIds((prev) => (prev.includes(clueId) ? prev : [...prev, clueId]));
+            }}
             onUnpinEvidence={store.unpinEvidence}
             onDeleteConnection={store.deleteConnection}
             onConnectPins={store.connectEvidence}
             onOpenClue={store.setSelectedClueId}
+            currentObjective={currentObjective}
+            onNavigateTab={(tab) => store.setActiveTab(tab)}
           />
         )}
 
@@ -718,9 +763,12 @@ export default function InvestigationPage({
             const y = 80 + Math.floor(count / 3) * 220;
             store.pinEvidence(clueId, x, y);
             store.setSelectedClueId(null);
-            store.setActiveTab("caseboard");
-            setVisitedCaseboard(true);
-            setTutorialProgress((prev) => ({ ...prev, pinnedEvidence: true, reviewedCaseboard: true }));
+            // Only navigate to caseboard if Step 3 (Caseboard objective) is active
+            if (activeStepNumber === 3) {
+              store.setActiveTab("caseboard");
+              setVisitedCaseboard(true);
+            }
+            setTutorialProgress((prev) => ({ ...prev, pinnedEvidence: true }));
           }}
           onAttachToChat={() => {
             store.setSelectedClueId(null);

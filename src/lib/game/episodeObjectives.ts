@@ -94,6 +94,7 @@ export interface ObjectiveTrackingState {
   visitedCaseboard: boolean;
   reviewedTimeline: boolean;
   checkpointPassed: boolean;
+  availableClueIds?: string[];
 }
 
 export function getEpisodeObjectives(
@@ -139,6 +140,11 @@ export function getEpisodeObjectives(
       5: step5Done,
     };
 
+    const uninspectedClueId =
+      tracking.availableClueIds?.find((id) => !tracking.inspectedClueIds.includes(id)) ||
+      tracking.availableClueIds?.[0] ||
+      "c1_seat_14_photo";
+
     const objectives: EpisodeObjective[] = EPISODE_1_OBJECTIVES_DEFINITION.map((def) => {
       const stepNum = def.stepNumber;
       const isCompleted = completedMap[stepNum] || false;
@@ -165,8 +171,11 @@ export function getEpisodeObjectives(
         currentCount = 0;
       }
 
+      const recommendedClueId = stepNum === 1 ? uninspectedClueId : def.recommendedClueId;
+
       return {
         ...def,
+        recommendedClueId,
         currentCount,
         isCompleted,
         isCurrent,
